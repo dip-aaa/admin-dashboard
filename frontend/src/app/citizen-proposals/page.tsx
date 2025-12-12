@@ -46,7 +46,7 @@ export default function CitizenProposals() {
   // if editing an existing draft, hold its id
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
 
-  // (font) Poppins is now loaded globally from RootLayout
+  // (font) Poppins is loaded globally from RootLayout
 
   // toast helper
   useEffect(() => {

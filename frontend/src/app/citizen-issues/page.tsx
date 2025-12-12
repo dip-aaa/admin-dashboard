@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
@@ -44,6 +44,8 @@ export default function CitizenIssues() {
   const statusOptions = ['All Statuses', 'Pending', 'In Review', 'Resolved'];
   const [priorityOpen, setPriorityOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
+
+  // (font) Poppins is loaded globally from RootLayout
   
   const selectPriority = (val: string) => { setPriorityFilter(val); setPriorityOpen(false); };
   const selectStatus = (val: string) => { setStatusFilter(val); setStatusOpen(false); };
