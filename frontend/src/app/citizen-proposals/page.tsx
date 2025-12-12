@@ -1,12 +1,23 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 
+// Attachment type (stores preview dataUrl so drafts can persist)
+type Attachment = {
+  name: string;
+  type?: string;
+  size?: number;
+  dataUrl?: string;
+  file?: File;
+};
+
 export default function CitizenProposals() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('citizen-proposals');
+
+  // form state
   const [projectTitle, setProjectTitle] = useState('');
   const [problemStatement, setProblemStatement] = useState('');
   const [proposedSolution, setProposedSolution] = useState('');
@@ -14,18 +25,125 @@ export default function CitizenProposals() {
   const [estimatedDuration, setEstimatedDuration] = useState('2 weeks');
   const [department, setDepartment] = useState('Public Works');
 
+  // department custom dropdown state & options
+  const departments = ['Public Works', 'Transportation', 'Infrastructure', 'Urban Planning'];
+  const [departmentOpen, setDepartmentOpen] = useState(false);
+  const selectDepartment = (d: string) => { setDepartment(d); setDepartmentOpen(false); };
+
+  // attachments & UI state (store Attachment objects with dataUrl)
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  // draft & draft-modal state
+  const [hasDraft, setHasDraft] = useState(false);
+  const [showDraftModal, setShowDraftModal] = useState(false);
+  const [draftData, setDraftData] = useState<any>(null);
+  // list of saved drafts
+  const [draftsList, setDraftsList] = useState<any[]>([]);
+  // if editing an existing draft, hold its id
+  const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
+
+  // load Poppins & small UI polish once
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    return () => { document.head.removeChild(link); };
+  }, []);
+
+  // toast helper
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  useEffect(() => {
+    const raw = localStorage.getItem('proposal_drafts');
+    const list = raw ? JSON.parse(raw) : [];
+    setDraftsList(list);
+    setHasDraft(list.length > 0);
+  }, []);
+
   const handleLogout = () => {
     router.push('/login');
   };
 
-  const handleSaveDraft = () => {
-    // Handle save draft functionality
-    console.log('Saving draft...');
+  const handleAttachClick = () => fileInputRef.current?.click();
+  // read file as dataUrl helper
+  const fileToDataUrl = (file: File) => new Promise<string>((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(String(fr.result));
+    fr.onerror = rej;
+    fr.readAsDataURL(file);
+  });
+
+  const handleFilesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const arr = Array.from(files);
+    const mapped: Attachment[] = await Promise.all(arr.map(async (f) => ({
+      name: f.name,
+      type: f.type,
+      size: f.size,
+      dataUrl: await fileToDataUrl(f),
+      file: f
+    })));
+    setAttachments(prev => [...prev, ...mapped]);
+    e.currentTarget.value = '';
+  };
+  const removeAttachment = (idx: number) => setAttachments(prev => prev.filter((_, i) => i !== idx));
+
+  // save (create or update) draft into localStorage array 'proposal_drafts'
+  const handleSaveDraft = async () => {
+    setSavingDraft(true);
+    try {
+      const id = editingDraftId || `draft_${Date.now()}`;
+      const draftObj = {
+        id,
+        projectTitle,
+        problemStatement,
+        proposedSolution,
+        estimatedBudget,
+        estimatedDuration,
+        department,
+        updatedAt: new Date().toISOString(),
+        attachments: attachments.map(a => ({ name: a.name, type: a.type, size: a.size, dataUrl: a.dataUrl }))
+      };
+
+      const raw = localStorage.getItem('proposal_drafts');
+      const list = raw ? JSON.parse(raw) : [];
+      const existingIndex = list.findIndex((d: any) => d.id === id);
+      if (existingIndex >= 0) {
+        list[existingIndex] = draftObj;
+      } else {
+        list.unshift(draftObj);
+      }
+      localStorage.setItem('proposal_drafts', JSON.stringify(list));
+      setDraftsList(list);
+      setHasDraft(list.length > 0);
+      setEditingDraftId(null);
+      setToast(editingDraftId ? 'Draft updated' : 'Draft saved');
+    } catch (err) {
+      setToast('Unable to save draft');
+    } finally {
+      setSavingDraft(false);
+    }
   };
 
-  const handleSubmitForReview = () => {
-    // Handle submit for review functionality
-    console.log('Submitting for review...');
+  const handleSubmitForReview = async () => {
+    setSubmitting(true);
+    // simulate upload/submit
+    await new Promise((r) => setTimeout(r, 900));
+    // pretend successful
+    setSubmitting(false);
+    setToast('Proposal submitted for review');
+    // clear form
+    setProjectTitle(''); setProblemStatement(''); setProposedSolution(''); setAttachments([]);
   };
 
   const handleBackClick = () => {
@@ -42,8 +160,79 @@ export default function CitizenProposals() {
 3. Laying new asphalt
 4. Restriping all lane markers and crosswalks`;
 
+  const handleOpenDrafts = () => {
+    const raw = localStorage.getItem('proposal_drafts');
+    const list = raw ? JSON.parse(raw) : [];
+    setDraftsList(list);
+    setShowDraftModal(true);
+  };
+
+  // load a specific draft into the form (used for edit/load)
+  const handleLoadDraft = (d: any) => {
+    if (!d) { setToast('No draft to load'); return; }
+    setProjectTitle(d.projectTitle || '');
+    setProblemStatement(d.problemStatement || '');
+    setProposedSolution(d.proposedSolution || '');
+    setEstimatedBudget(d.estimatedBudget || '');
+    setEstimatedDuration(d.estimatedDuration || '');
+    setDepartment(d.department || 'Public Works');
+    // restore attachments as Attachment objects (dataUrl present)
+    setAttachments((d.attachments || []).map((a: any) => ({
+      name: a.name, type: a.type, size: a.size, dataUrl: a.dataUrl
+    })));
+    setToast('Draft loaded');
+    setShowDraftModal(false);
+    setEditingDraftId(d.id || null);
+  };
+
+  const handleDeleteDraft = (id: string) => {
+    const raw = localStorage.getItem('proposal_drafts');
+    const list = raw ? JSON.parse(raw) : [];
+    const next = list.filter((x: any) => x.id !== id);
+    localStorage.setItem('proposal_drafts', JSON.stringify(next));
+    setDraftsList(next);
+    setHasDraft(next.length > 0);
+    setToast('Draft deleted');
+  };
+
+  const handleClearAllDrafts = () => {
+    localStorage.removeItem('proposal_drafts');
+    setDraftsList([]);
+    setHasDraft(false);
+    setShowDraftModal(false);
+    setToast('All drafts cleared');
+  };
+
+  // image/open helpers
+  const openAttachmentInNewTab = async (a: Attachment) => {
+    try {
+      if (!a) return;
+      // if we have original File object use object URL
+      if (a.file) {
+        const obj = URL.createObjectURL(a.file);
+        const win = window.open(obj, '_blank');
+        setTimeout(() => URL.revokeObjectURL(obj), 10000);
+        if (!win) window.location.href = obj;
+        return;
+      }
+      // otherwise convert dataUrl to blob then open
+      if (a.dataUrl) {
+        const res = await fetch(a.dataUrl);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const win = window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        if (!win) window.location.href = url;
+        return;
+      }
+    } catch (err) {
+      console.error(err);
+      setToast?.('Unable to open attachment');
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50" style={{ fontFamily: 'Poppins, sans-serif' }}>
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       
       <div className="ml-64 flex flex-col min-h-screen">
@@ -66,28 +255,34 @@ export default function CitizenProposals() {
                     </svg>
                   </button>
                   <div>
-                    <h1 className="text-2xl font-bold text-slate-900">New Budget Proposal</h1>
+                    <h1 className="text-2xl font-bold text-[#19295C]">New Budget Proposal</h1>
                     <p className="text-slate-500">Drafting proposal for FY 2025-Q3 Cycle</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <button 
+                  <button
                     onClick={handleSaveDraft}
-                    className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors"
+                    disabled={savingDraft}
+                    className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg text-[#2D3F7B] bg-white hover:shadow-sm transition"
+                    title="Save draft locally"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 0V5a2 2 0 00-2-2H9a2 2 0 00-2 2v2m1 0h4" />
-                    </svg>
-                    Save Draft
+                    {savingDraft ? 'Saving...' : 'Save Draft'}
                   </button>
-                  <button 
-                    onClick={handleSubmitForReview}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+
+                  <button
+                    onClick={handleOpenDrafts}
+                    className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-[#2D3F7B] hover:shadow-sm"
+                    title="View saved drafts"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                    </svg>
-                    Submit for Review
+                    View Drafts
+                  </button>
+
+                  <button
+                    onClick={handleSubmitForReview}
+                    disabled={submitting}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#2D3F7B] text-white rounded-lg hover:bg-[#19295C] transition"
+                  >
+                    {submitting ? 'Submitting...' : 'Submit for Review'}
                   </button>
                 </div>
               </div>
@@ -105,7 +300,7 @@ export default function CitizenProposals() {
                     value={projectTitle}
                     onChange={(e) => setProjectTitle(e.target.value)}
                     placeholder="Enter a clear, descriptive title"
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#2D3F7B] focus:border-[#19295C]"
                   />
                 </div>
 
@@ -114,16 +309,16 @@ export default function CitizenProposals() {
                   <label className="block text-sm font-semibold text-slate-900 mb-3">Problem Statement</label>
                   
                   {/* AI Suggestion */}
-                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-white border border-blue-100 rounded-lg">
                     <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <div className="w-6 h-6 bg-gradient-to-r from-[#2D3F7B] to-[#19295C] rounded-lg flex items-center justify-center flex-shrink-0">
                         <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-blue-900 mb-1">AI Suggestion:</p>
-                        <p className="text-sm text-blue-800">{aiSuggestion}</p>
+                        <p className="text-sm font-semibold text-[#2D3F7B] mb-1">AI Suggestion:</p>
+                        <p className="text-sm text-[#19295C]">{aiSuggestion}</p>
                       </div>
                     </div>
                   </div>
@@ -133,7 +328,7 @@ export default function CitizenProposals() {
                     onChange={(e) => setProblemStatement(e.target.value)}
                     placeholder={problemStatementText}
                     rows={6}
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#2D3F7B] focus:border-[#19295C] resize-none"
                   />
                 </div>
 
@@ -145,20 +340,67 @@ export default function CitizenProposals() {
                     onChange={(e) => setProposedSolution(e.target.value)}
                     placeholder={proposedSolutionText}
                     rows={8}
-                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                    className="w-full px-4 py-3 border border-slate-300 rounded-lg text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#2D3F7B] focus:border-[#19295C] resize-none"
                   />
                 </div>
 
                 {/* Attachments */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                   <label className="block text-sm font-semibold text-slate-900 mb-3">Attachments</label>
-                  <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:border-slate-400 transition-colors cursor-pointer">
-                    <svg className="w-12 h-12 text-slate-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div
+                    className="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-blue-200 transition-colors cursor-pointer"
+                    onClick={handleAttachClick}
+                    role="button"
+                    aria-label="Add attachments"
+                  >
+                    <svg className="w-10 h-10 text-slate-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
                     <p className="text-slate-600 font-medium">Click to upload files</p>
                     <p className="text-sm text-slate-500">or drag and drop</p>
+
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      onChange={handleFilesChange}
+                      className="hidden"
+                    />
                   </div>
+
+                  {attachments.length > 0 && (
+                    <div className="mt-4 grid gap-2">
+                      {attachments.map((a, i) => (
+                        <div key={i} className="flex items-center justify-between bg-white border border-slate-100 rounded-md p-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-8 bg-slate-100 rounded-md flex items-center justify-center text-slate-600 text-sm overflow-hidden">
+                              {a.type?.startsWith('image') && a.dataUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={a.dataUrl} alt={a.name} className="w-full h-full object-cover cursor-pointer" onClick={(e)=>{ e.stopPropagation(); openAttachmentInNewTab(a); }} />
+                              ) : (
+                                '📎'
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium text-[#19295C] truncate">{a.name}</div>
+                              <div className="text-xs text-slate-500">{a.size ? `${Math.round(a.size / 1024)} KB` : ''}</div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); openAttachmentInNewTab(a); }}
+                              className="text-sm text-[#2D3F7B] hover:underline"
+                            >
+                              Open
+                            </button>
+                            <button onClick={() => removeAttachment(i)} className="text-sm text-slate-500 hover:text-red-500">
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -171,31 +413,59 @@ export default function CitizenProposals() {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">Estimated Budget</label>
-                      <div className="text-2xl font-bold text-slate-900">₹ {estimatedBudget}</div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Estimated Duration</label>
-                      <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span className="text-slate-900 font-medium">{estimatedDuration}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg text-slate-700">रु</span>
+                        <input
+                          value={estimatedBudget}
+                          onChange={(e) => setEstimatedBudget(e.target.value)}
+                          placeholder="0"
+                          className="text-2xl font-bold text-[#19295C] w-40 px-2 py-1 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2D3F7B]"
+                        />
                       </div>
                     </div>
-
+ 
                     <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">Estimated Duration</label>
+                      <input
+                        value={estimatedDuration}
+                        onChange={(e) => setEstimatedDuration(e.target.value)}
+                        placeholder="e.g. 2 weeks"
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#2D3F7B] focus:border-[#19295C]"
+                      />
+                    </div>
+
+                    <div className="relative">
                       <label className="block text-sm font-medium text-slate-700 mb-2">Department</label>
-                      <select
-                        value={department}
-                        onChange={(e) => setDepartment(e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      <button
+                        type="button"
+                        onClick={() => setDepartmentOpen(!departmentOpen)}
+                        className="w-full flex items-center justify-between px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 focus:outline-none shadow-sm"
                       >
-                        <option value="Public Works">Public Works</option>
-                        <option value="Transportation">Transportation</option>
-                        <option value="Infrastructure">Infrastructure</option>
-                        <option value="Urban Planning">Urban Planning</option>
-                      </select>
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-[#2D3F7B]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h18M3 17h18" />
+                          </svg>
+                          <span className="truncate">{department}</span>
+                        </div>
+                        <svg className="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      {departmentOpen && (
+                        <div className="absolute mt-2 w-full bg-white border border-slate-200 rounded-md shadow-lg z-30">
+                          {departments.map((d) => (
+                            <button
+                              key={d}
+                              type="button"
+                              onClick={() => selectDepartment(d)}
+                              className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 ${department === d ? 'font-semibold text-[#2D3F7B]' : 'text-slate-700'}`}
+                            >
+                              {d}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -223,7 +493,7 @@ export default function CitizenProposals() {
                         <span className="text-sm font-medium text-slate-900">85%</span>
                       </div>
                       <div className="w-full bg-slate-200 rounded-full h-2">
-                        <div className="bg-blue-600 h-2 rounded-full" style={{ width: '85%' }}></div>
+                        <div className="bg-[#2D3F7B] h-2 rounded-full" style={{ width: '85%' }}></div>
                       </div>
                     </div>
                   </div>
@@ -231,6 +501,55 @@ export default function CitizenProposals() {
               </div>
             </div>
           </div>
+
+          {/* toast */}
+          {toast && (
+            <div className="fixed right-6 bottom-6 z-50 bg-[#19295C] text-white px-4 py-2 rounded-lg shadow-lg">
+              {toast}
+            </div>
+          )}
+
+          {/* Drafts Modal (shows all saved drafts with edit/load/delete) */}
+          {showDraftModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+              <div className="bg-white rounded-xl shadow-lg max-w-3xl w-full p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-slate-900">Saved Drafts</h3>
+                  <div className="flex items-center gap-2">
+                    <button onClick={handleClearAllDrafts} className="px-3 py-1 text-sm bg-red-50 text-red-600 rounded-md">Clear All</button>
+                    <button onClick={() => setShowDraftModal(false)} className="px-3 py-1 text-sm bg-slate-700 rounded-md">Close</button>
+                  </div>
+                </div>
+
+                {draftsList.length === 0 ? (
+                  <p className="text-center text-slate-500 text-sm py-8">No drafts saved yet.</p>
+                ) : (
+                  <div className="space-y-3 max-h-96 overflow-auto">
+                    {draftsList.map((d) => (
+                      <div key={d.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200 flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-3 mb-1">
+                            <h4 className="text-md font-semibold text-[#19295C] truncate">{d.projectTitle || 'Untitled draft'}</h4>
+                            <span className="text-xs text-slate-500">• {new Date(d.updatedAt).toLocaleString()}</span>
+                          </div>
+                          <p className="text-sm text-slate-600 max-w-2xl truncate">{d.problemStatement}</p>
+                          <div className="mt-2 text-xs text-slate-500 flex gap-4">
+                            <div>Budget: {d.estimatedBudget}</div>
+                            <div>Duration: {d.estimatedDuration}</div>
+                            <div>Dept: {d.department}</div>
+                          </div>
+                        </div>
+                        <div className="flex-shrink-0 flex flex-col items-end gap-2">
+                          <button onClick={() => handleLoadDraft(d)} className="px-3 py-1 bg-[#2D3F7B] text-white rounded-md hover:bg-[#19295C]">Load</button>
+                          <button onClick={() => handleDeleteDraft(d.id)} className="px-3 py-1 bg-red-50 text-red-600 rounded-md hover:bg-red-100">Delete</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

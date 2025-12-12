@@ -1,5 +1,4 @@
 'use client';
-import React from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
@@ -99,7 +98,10 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   };
 
   return (
-    <div className="bg-slate-100 border-r border-slate-200 text-slate-700 w-64 h-screen fixed left-0 top-0 flex flex-col z-10">
+    <div className="bg-gradient-to-b from-blue-100/80 via-blue-50/50 to-blue-25/30 backdrop-blur-md w-64 h-screen fixed left-0 top-0 flex flex-col z-10 border-r border-blue-200/40">
+      {/* Additional flowing overlay for depth */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 via-transparent to-blue-100/20 pointer-events-none"></div>
+      
       <div className="p-6 border-b border-slate-200">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 flex-shrink-0 overflow-hidden">
@@ -111,7 +113,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
               className="w-full h-full object-contain scale-250"
             />
           </div>
-          <h1 className="text-xl font-bold text-blue-900">Hamro Chautari</h1>
+          <h1 className="text-2xl font-bold text-blue-900">Hamro Chautari</h1>
         </div>
       </div>
       

@@ -1,22 +1,56 @@
 'use client';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 
+interface Report {
+  name: string;
+  report: string;
+  timeAgo: string;
+  avatar: string;
+  image: string;
+}
+
+interface Issue {
+  id: number;
+  image: string;
+  title: string;
+  location: string;
+  category: string;
+  categoryColor: string;
+  priority: number;
+  status: string;
+  statusColor: string;
+  submitted: string;
+  description: string;
+  reportsCount: number;
+  engagement: string;
+  timeAgo: string;
+  recentReports: Report[];
+}
+
 export default function CitizenIssues() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('citizen-issues');
-  const [selectedIssue, setSelectedIssue] = useState(null);
+  const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const [showReports, setShowReports] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('All Priorities');
   const [statusFilter, setStatusFilter] = useState('All Statuses');
 
+  // nicer controls state
+  const priorityOptions = ['All Priorities', 'High', 'Medium', 'Low'];
+  const statusOptions = ['All Statuses', 'Pending', 'In Review', 'Resolved'];
+  const [priorityOpen, setPriorityOpen] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
+  
+  const selectPriority = (val: string) => { setPriorityFilter(val); setPriorityOpen(false); };
+  const selectStatus = (val: string) => { setStatusFilter(val); setStatusOpen(false); };
+  
   const handleLogout = () => {
     router.push('/login');
   };
-
   const issuesData = [
     {
       id: 1,
@@ -24,11 +58,10 @@ export default function CitizenIssues() {
       title: 'Water pipe leak causing flooding',
       location: '201 Commerce Street',
       category: 'Water Supply',
-      categoryColor: 'bg-blue-100 text-blue-700',
-      categoryIcon: '💧',
+      categoryColor: 'text-blue-700',
       priority: 95,
       status: 'In Review',
-      statusColor: 'bg-blue-100 text-blue-700',
+      statusColor: 'text-blue-700',
       submitted: 'about 1 year ago',
       description: 'Multiple reports of severe water pipe leak causing flooding in residential area',
       reportsCount: 45,
@@ -57,11 +90,10 @@ export default function CitizenIssues() {
       title: 'Large pothole on Main Street',
       location: '123 Main Street, Downtown',
       category: 'Road Damage',
-      categoryColor: 'bg-orange-100 text-orange-700',
-      categoryIcon: '🛣️',
+      categoryColor: 'text-blue-700',
       priority: 92,
       status: 'Pending',
-      statusColor: 'bg-yellow-100 text-yellow-700',
+      statusColor: 'text-yellow-700',
       submitted: 'about 1 year ago',
       description: 'Multiple reports of severe potholes causing vehicle damage on Main Street',
       reportsCount: 45,
@@ -90,11 +122,10 @@ export default function CitizenIssues() {
       title: 'Missing stop sign at intersection',
       location: 'Pine Street & 3rd Avenue',
       category: 'Other',
-      categoryColor: 'bg-gray-100 text-gray-700',
-      categoryIcon: '🚏',
+      categoryColor: 'text-blue-700',
       priority: 90,
       status: 'Resolved',
-      statusColor: 'bg-green-100 text-green-700',
+      statusColor: 'text-green-700',
       submitted: 'about 1 year ago',
       description: 'Traffic safety issue due to missing stop sign at busy intersection',
       reportsCount: 28,
@@ -116,11 +147,10 @@ export default function CitizenIssues() {
       title: 'Overflowing garbage bins at Central Park',
       location: 'Central Park, Playground Area',
       category: 'Waste Management',
-      categoryColor: 'bg-green-100 text-green-700',
-      categoryIcon: '🗑️',
+      categoryColor: 'text-blue-700',
       priority: 88,
       status: 'In Review',
-      statusColor: 'bg-blue-100 text-blue-700',
+      statusColor: 'text-blue-700',
       submitted: 'about 1 year ago',
       description: 'Waste bins overflowing causing hygiene and environmental issues',
       reportsCount: 35,
@@ -142,11 +172,10 @@ export default function CitizenIssues() {
       title: 'Power outage in residential block',
       location: 'Riverside Drive, Block 12-18',
       category: 'Electricity',
-      categoryColor: 'bg-yellow-100 text-yellow-700',
-      categoryIcon: '⚡',
+      categoryColor: 'text-blue-700',
       priority: 85,
       status: 'Resolved',
-      statusColor: 'bg-green-100 text-green-700',
+      statusColor: 'text-green-700',
       submitted: 'about 1 year ago',
       description: 'Extended power outage affecting multiple residential buildings',
       reportsCount: 42,
@@ -179,7 +208,7 @@ export default function CitizenIssues() {
     return matchesSearch && matchesPriority && matchesStatus;
   });
 
-  const handleIssueClick = (issue) => {
+  const handleIssueClick = (issue: Issue) => {
     setSelectedIssue(issue);
   };
 
@@ -190,7 +219,7 @@ export default function CitizenIssues() {
   // If an issue is selected, show the detailed view
   if (selectedIssue) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-slate-50" style={{ fontFamily: 'Poppins, sans-serif' }}>
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
         
         <div className="ml-64 flex flex-col min-h-screen">
@@ -203,7 +232,7 @@ export default function CitizenIssues() {
               {/* Back Button */}
               <button 
                 onClick={handleBackToList}
-                className="mb-6 flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
+                className="mb-6 flex items-center gap-2 text-[#2D3F7B] hover:text-[#19295C] font-medium"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -211,41 +240,38 @@ export default function CitizenIssues() {
                 Back to Issues List
               </button>
 
-              {/* Header */}
+              {/* Header - simplified, removed time range & refresh */}
               <div className="mb-8">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Priority Issues</h1>
+                    <h1 className="text-2xl font-bold" style={{color: '#19295C'}}>Priority Issues</h1>
                     <p className="text-slate-500 mt-1">AI-grouped citizen reports ranked by community impact.</p>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span>Time Range: Last 7 Days</span>
+
+                  {/* Compact info chips */}
+                  <div className="flex items-center gap-3">
+                    <div className="px-3 py-2 bg-blue-50 rounded-lg border border-blue-100 text-sm font-semibold" style={{color: '#2D3F7B'}}>
+                      {selectedIssue.reportsCount} Reports
                     </div>
-                    <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      Refresh AI Analysis
-                    </button>
+                    <div className="px-3 py-2 bg-white rounded-lg border border-blue-100 text-sm font-semibold" style={{color: '#19295C'}}>
+                      Priority {selectedIssue.priority}
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Issue Detail Card */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
                 <div className="p-8">
                   <div className="flex gap-8">
                     {/* Left Content */}
                     <div className="flex-1">
                       {/* Header Tags */}
                       <div className="flex items-center gap-3 mb-4">
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedIssue.categoryColor}`}>
-                          {selectedIssue.categoryIcon} {selectedIssue.category}
+                        <span className="text-sm font-semibold text-black">
+                          {selectedIssue.category}
                         </span>
+
                         <div className="flex items-center gap-1 text-sm text-slate-500">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -253,7 +279,8 @@ export default function CitizenIssues() {
                           </svg>
                           <span>{selectedIssue.location}</span>
                         </div>
-                        <div className="flex items-center gap-1 text-sm text-slate-500">
+
+                        <div className="flex items-center gap-1 text-sm text-slate-500 ml-3">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
@@ -262,11 +289,11 @@ export default function CitizenIssues() {
                       </div>
 
                       {/* Title */}
-                      <h2 className="text-2xl font-bold text-slate-900 mb-4">{selectedIssue.title}</h2>
+                      <h2 className="text-2xl font-bold mb-4" style={{color: '#19295C'}}>{selectedIssue.title}</h2>
 
                       {/* AI Summary */}
                       <div className="flex items-start gap-3 mb-6">
-                        <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <div className="w-7 h-7 bg-gradient-to-r from-[#2D3F7B] to-[#19295C] rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
                           <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                           </svg>
@@ -297,7 +324,7 @@ export default function CitizenIssues() {
                       <div className="mb-6">
                         <button 
                           onClick={() => setShowReports(!showReports)}
-                          className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
+                          className="flex items-center gap-2 text-[#2D3F7B] hover:text-[#19295C] font-medium"
                         >
                           <span>{showReports ? 'Hide Reports' : 'Show Reports'}</span>
                           <svg className={`w-4 h-4 transition-transform ${showReports ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -311,9 +338,9 @@ export default function CitizenIssues() {
                         <div>
                           <h3 className="font-semibold text-slate-900 mb-4">Recent Citizen Reports</h3>
                           <div className="space-y-4">
-                            {selectedIssue.recentReports.map((report, index) => (
-                              <div key={index} className="flex gap-4 p-4 bg-slate-50 rounded-xl">
-                                <div className="w-10 h-10 bg-slate-400 rounded-full flex items-center justify-center flex-shrink-0">
+                            {selectedIssue.recentReports.map((report: Report, index: number) => (
+                              <div key={index} className="flex gap-4 p-4 bg-white rounded-xl border border-slate-100 shadow-sm">
+                                <div className="w-10 h-10 bg-[#2D3F7B] rounded-full flex items-center justify-center flex-shrink-0">
                                   <span className="text-white font-semibold">{report.avatar}</span>
                                 </div>
                                 <div className="flex-1">
@@ -340,19 +367,20 @@ export default function CitizenIssues() {
                     </div>
 
                     {/* Right Side - Priority Score & Action */}
-                    <div className="flex flex-col items-center gap-6">
+                    <div className="flex flex-col items-center gap-6 w-56">
                       <div className="text-center">
-                        <div className="text-6xl font-bold text-blue-600 mb-2">{selectedIssue.priority}</div>
+                        <div className="text-6xl font-bold mb-2" style={{color: '#19295C'}}>{selectedIssue.priority}</div>
                         <div className="text-sm font-medium text-slate-500 uppercase tracking-wide">PRIORITY SCORE</div>
                       </div>
                       
-                      <button className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors shadow-sm">
+                      <button className="px-6 py-3 bg-[#2D3F7B] text-white rounded-xl font-semibold hover:bg-[#19295C] transition-colors shadow-sm">
                         Draft Proposal
                       </button>
                     </div>
                   </div>
                 </div>
               </div>
+
             </div>
           </div>
         </div>
@@ -373,48 +401,78 @@ export default function CitizenIssues() {
         <div className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
             {/* Search and Filters */}
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6">
-              <div className="flex items-center gap-4">
-                <div className="flex-1 relative">
-                  <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  <input
-                    type="text"
-                    placeholder="Search issues..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-black placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
+            <div className="bg-white p-4 rounded-2xl shadow-md border border-slate-100 mb-6">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
+                {/* Search */}
+                <div className="flex-1 relative w-full lg:w-auto">
+                  <div className="flex items-center bg-gradient-to-r from-white to-blue-50/40 border border-slate-200 rounded-full px-3 py-2 shadow-sm">
+                    <svg className="w-5 h-5 text-slate-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input
+                      type="text"
+                      placeholder="Search issues, location or category..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full bg-transparent outline-none text-slate-800 placeholder-slate-400"
+                    />
+                    {searchTerm && (
+                      <button onClick={() => setSearchTerm('')} className="ml-2 text-slate-400 hover:text-slate-600">
+                        ✕
+                      </button>
+                    )}
+                  </div>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                  </svg>
+                {/* Priority dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setPriorityOpen(!priorityOpen)}
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow-md focus:outline-none"
+                  >
+                    <span className="text-sm text-slate-700">{priorityFilter}</span>
+                    <svg className="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {priorityOpen && (
+                    <div className="absolute right-0 mt-2 w-44 bg-white border border-slate-200 rounded-md shadow-lg z-30">
+                      {priorityOptions.map(opt => (
+                        <button
+                          key={opt}
+                          onClick={() => selectPriority(opt)}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 ${priorityFilter === opt ? 'font-semibold text-blue-700' : 'text-slate-700'}`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-
-                <select 
-                  value={priorityFilter}
-                  onChange={(e) => setPriorityFilter(e.target.value)}
-                  className="px-3 py-2 border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option>All Priorities</option>
-                  <option>High</option>
-                  <option>Medium</option>
-                  <option>Low</option>
-                </select>
-
-                <select 
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-3 py-2 border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option>All Statuses</option>
-                  <option>Pending</option>
-                  <option>In Review</option>
-                  <option>Resolved</option>
-                </select>
+                {/* Status dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setStatusOpen(!statusOpen)}
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow-md focus:outline-none"
+                  >
+                    <span className="text-sm text-slate-700">{statusFilter}</span>
+                    <svg className="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {statusOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-md shadow-lg z-30">
+                      {statusOptions.map(opt => (
+                        <button
+                          key={opt}
+                          onClick={() => selectStatus(opt)}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 ${statusFilter === opt ? 'font-semibold text-blue-700' : 'text-slate-700'}`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -423,82 +481,57 @@ export default function CitizenIssues() {
               <p className="text-slate-600">Showing {filteredIssues.length} of {issuesData.length} issues</p>
             </div>
 
-            {/* Issues Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-slate-50 border-b border-slate-200">
-                    <tr>
-                      <th className="text-left p-4 font-semibold text-slate-700">Image</th>
-                      <th className="text-left p-4 font-semibold text-slate-700">Issue</th>
-                      <th className="text-left p-4 font-semibold text-slate-700">Category</th>
-                      <th className="text-left p-4 font-semibold text-slate-700">Priority</th>
-                      <th className="text-left p-4 font-semibold text-slate-700">Status</th>
-                      <th className="text-left p-4 font-semibold text-slate-700">Submitted</th>
-                      <th className="w-12"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {filteredIssues.map((issue) => (
-                      <tr 
-                        key={issue.id} 
-                        className="hover:bg-slate-50 cursor-pointer transition-colors"
-                        onClick={() => handleIssueClick(issue)}
-                      >
-                        <td className="p-4">
-                          <img 
-                            src={issue.image} 
-                            alt="Issue" 
-                            className="w-12 h-12 rounded-lg object-cover border border-slate-200"
-                          />
-                        </td>
-                        <td className="p-4">
-                          <div>
-                            <h4 className="font-semibold text-slate-900 mb-1">{issue.title}</h4>
-                            <p className="text-sm text-slate-500 flex items-center gap-1">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                              </svg>
-                              {issue.location}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${issue.categoryColor}`}>
-                            <span>{issue.categoryIcon}</span>
-                            {issue.category}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                              issue.priority >= 95 ? 'bg-red-100 text-red-700' :
-                              issue.priority >= 90 ? 'bg-orange-100 text-orange-700' :
-                              'bg-slate-100 text-slate-700'
-                            }`}>
-                              {issue.priority}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${issue.statusColor}`}>
-                            {issue.status}
-                          </span>
-                        </td>
-                        <td className="p-4">
-                          <span className="text-sm text-slate-600">{issue.submitted}</span>
-                        </td>
-                        <td className="p-4">
-                          <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            {/* Issues List - alternating light blue / white cards with gap */}
+            <div className="space-y-4">
+              {filteredIssues.map((issue, idx) => {
+                const isEven = idx % 2 === 0;
+                return (
+                  <div
+                    key={issue.id}
+                    onClick={() => handleIssueClick(issue)}
+                    className={`flex items-center gap-4 p-4 rounded-2xl border transition-shadow cursor-pointer hover:shadow-md ${
+                      isEven ? 'bg-blue-50 border-blue-100' : 'bg-white border-slate-200'
+                    }`}
+                  >
+                    <img
+                      src={issue.image}
+                      alt="Issue"
+                      className={`w-12 h-12 rounded-lg object-cover ${isEven ? 'border-blue-100' : 'border-slate-200'} shadow-sm`}
+                    />
+
+                    {/* Priority column moved left (right after image) */}
+                    <div className="w-20 flex flex-col items-center justify-center">
+                      <div className="text-2xl font-extrabold leading-none" style={{color: '#19295C'}}>
+                        {issue.priority}
+                      </div>
+                      <div className="text-xs text-slate-500 tracking-wider">PRIORITY</div>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-slate-900 mb-1 truncate">{issue.title}</h4>
+                      <p className="text-sm text-slate-500 flex items-center gap-1 truncate">
+                        <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span className="truncate" style={{color: '#2D3F7B', opacity: 0.85}}>{issue.location}</span>
+                      </p>
+                    </div>
+
+                    <div className="w-56 flex items-center justify-end gap-4">
+                      <span className="text-sm font-semibold text-black mr-6 whitespace-nowrap">{issue.category}</span>
+                      <span className={`text-sm font-semibold whitespace-nowrap ${issue.statusColor}`}>{issue.status}</span>
+                      <span className="text-xs text-slate-500 whitespace-nowrap">{issue.submitted}</span>
+                    </div>
+                    
+                    <div className="shrink-0 pl-2">
+                      <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>

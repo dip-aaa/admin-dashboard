@@ -1,15 +1,65 @@
 'use client';
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { FaCheckCircle, FaClipboardList, FaChartLine } from 'react-icons/fa';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 
 export default function Dashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [currentDesign, setCurrentDesign] = useState(0);
 
   const handleLogout = () => {
     router.push('/login');
+  };
+
+  const handleDraftProposal = () => {
+    router.push('/citizen-proposals');
+  };
+
+  // Auto-rotate designs every 4 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentDesign((prev) => (prev + 1) % 3);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const designs = [
+    {
+      title: 'Welcome Back',
+      subtitle: 'Admin',
+      icon: <FaCheckCircle className="text-5xl text-blue-600 mb-4" />,
+      message: 'All systems operational'
+    },
+    {
+      title: 'Your Dashboard',
+      subtitle: 'Is Ready',
+      icon: <FaClipboardList className="text-5xl text-blue-600 mb-4" />,
+      message: '15 high priority items'
+    },
+    {
+      title: 'Let\'s Make',
+      subtitle: 'Progress',
+      icon: <FaChartLine className="text-5xl text-blue-600 mb-4" />,
+      message: '71 issues resolved'
+    }
+  ];
+
+  const design = designs[currentDesign];
+
+  // Blue-themed Recent Issues data
+  const recentIssues = [
+    { id: 92, title: 'Large pothole on Main Street', category: 'Road Damage', status: 'Pending', location: '123 Main Street, Downtown', time: 'about 1 year ago' },
+    { id: 88, title: 'Overflowing garbage bins at Central Park', category: 'Waste Management', status: 'In Review', location: 'Central Park, Playground Area', time: 'about 1 year ago' },
+    { id: 65, title: 'Broken street light on Elm Avenue', category: 'Street Light', status: 'Pending', location: '45 Elm Avenue, Residential District', time: 'about 1 year ago' },
+  ];
+
+  const statusStyles: Record<string, string> = {
+    Pending: 'bg-blue-100 text-blue-700',
+    'In Review': 'bg-blue-200 text-blue-800',
+    Resolved: 'bg-blue-300 text-blue-900',
   };
 
   return (
@@ -25,80 +75,135 @@ export default function Dashboard() {
           <div className="max-w-7xl mx-auto">
             {/* ONLY DASHBOARD CONTENT - NO SWITCH CASES */}
             <div className="space-y-6">
-              {/* Welcome Hero Section */}
-              <div className="relative bg-gradient-to-br from-blue-50 via-blue-100 to-blue-200 rounded-2xl p-8 text-slate-800 overflow-hidden border border-blue-300">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-300 opacity-20 rounded-full transform translate-x-32 -translate-y-32"></div>
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-400 opacity-15 rounded-full transform -translate-x-24 translate-y-24"></div>
-                
-                <div className="relative z-10">
-                  <div className="text-left">
-                    <h1 className="text-4xl font-bold mb-3 text-slate-800">Welcome Back, Commander.</h1>
-                    <p className="text-slate-600 text-lg mb-6">System status is <span className="text-green-600 font-semibold">Green</span>. Review critical anomalies below.</p>
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors shadow-md">
-                      VIEW SYSTEM REPORT
+              {/* Welcome Hero Section & Stats Cards */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Welcome Square Section - Modern Monitor Design */}
+                <div className="lg:col-span-1">
+                  <div className="relative aspect-square flex flex-col items-center justify-center transition-all duration-500">
+                    {/* Modern LED Monitor */}
+                    <div className="w-full h-4/5 flex flex-col">
+                      <div
+                        className="flex-1 rounded-2xl overflow-hidden border-8 border-slate-600 shadow-2xl relative flex flex-col items-center justify-center p-6"
+                        style={{ background: 'linear-gradient(135deg, #E8F4F8 0%, #F0F9FF 50%, #E0F2FE 100%)' }}
+                      >
+                        {/* Subtle top bezel light */}
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-white to-transparent opacity-40"></div>
+                        
+                        {/* Screen Content */}
+                        <div className="w-full h-full flex flex-col items-center justify-center text-center space-y-2">
+                          {/* Status Bar with Dashboard Title */}
+                          <div className="w-full flex justify-between items-center px-4 py-2 mb-2">
+                            <h3 className="text-xl font-bold" style={{color: '#2D3F7B'}}>Dashboard</h3>
+                            <div className="flex gap-1.5">
+                              <div className="w-1.5 h-1.5 rounded-full" style={{backgroundColor: '#ADD8E6'}}></div>
+                              <div className="w-1.5 h-1.5 rounded-full" style={{backgroundColor: '#ADD8E6'}}></div>
+                              <div className="w-1.5 h-1.5 rounded-full" style={{backgroundColor: '#ADD8E6'}}></div>
+                            </div>
+                          </div>
+
+                          {/* Modern Mini Chart Visualization */}
+                          <svg className="w-24 h-20" viewBox="0 0 140 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            {/* Grid background */}
+                            <defs>
+                              <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                                <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#2D3F7B" strokeWidth="0.3" opacity="0.2"/>
+                              </pattern>
+                            </defs>
+                            <rect width="140" height="100" fill="url(#grid)" />
+                            
+                            {/* Modern bars with gradient */}
+                            <rect x="18" y="60" width="14" height="30" fill="#10b981" rx="3" opacity="0.95"/>
+                            <rect x="38" y="40" width="14" height="50" fill="#f59e0b" rx="3" opacity="0.95"/>
+                            <rect x="58" y="20" width="14" height="70" fill="#dc2626" rx="3" opacity="0.95"/>
+                            <rect x="78" y="50" width="14" height="40" fill="#10b981" rx="3" opacity="0.95"/>
+                            <rect x="98" y="30" width="14" height="60" fill="#f59e0b" rx="3" opacity="0.95"/>
+                            <rect x="118" y="55" width="14" height="35" fill="#dc2626" rx="3" opacity="0.95"/>
+                          </svg>
+
+                          <h2 className="text-xl font-bold tracking-tight" style={{color: '#19295C'}}>
+                            {design.title}
+                          </h2>
+                          <p className="text-3xl font-black" style={{color: '#2D3F7B'}}>
+                            {design.subtitle}
+                          </p>
+                          <p className="text-sm font-medium" style={{color: '#2D3F7B', opacity: 0.75}}>
+                            {design.message}
+                          </p>
+
+                          {/* Modern Indicator dots */}
+                          <div className="flex justify-center gap-2 pt-2">
+                            {designs.map((_, idx) => (
+                              <div
+                                key={idx}
+                                className={`rounded-full transition-all duration-300 ${
+                                  idx === currentDesign ? 'bg-blue-600 w-5 h-2' : 'bg-blue-300 w-2 h-2'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Modern Minimal Stand */}
+                    <div className="w-2 h-8 bg-gradient-to-b from-slate-600 to-slate-500 shadow-lg -mt-1"></div>
+
+                    {/* Sleek Base */}
+                    <div className="w-3/4 h-2 bg-gradient-to-b from-slate-500 to-slate-600 rounded-full shadow-xl"></div>
+
+                    {/* Subtle LED Power Indicator */}
+                    <div className="absolute -bottom-6 right-6">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style={{boxShadow: '0 0 12px rgba(59, 130, 246, 0.8)'}}></div>
+                    </div>
+                  </div>
+
+                  {/* Button Below Monitor */}
+                  <div className="mt-10 flex justify-center">
+                    <button 
+                      onClick={handleDraftProposal}
+                      className="text-white px-8 py-3 rounded-lg font-semibold transition-all shadow-lg text-base hover:shadow-xl transform hover:scale-105"
+                      style={{backgroundColor: '#2D3F7B'}}
+                      onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#19295C'}
+                      onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = '#2D3F7B'}
+                    >
+                      DRAFT A PROPOSAL
                     </button>
                   </div>
                 </div>
-              </div>
 
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-slate-600">Total Issues</p>
-                      <p className="text-3xl font-bold text-slate-900">128</p>
-                      <p className="text-xs text-slate-500">All time submissions</p>
+                {/* Stats Cards Grid */}
+                <div className="lg:col-span-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
+                    <div className="bg-gradient-to-br from-white/90 via-blue-100/45 to-blue-200/30 backdrop-blur-md p-6 rounded-xl shadow-lg border border-blue-200/60">
+                      <div className="flex flex-col items-start gap-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide" style={{color: '#2D3F7B'}}>Total Issues</p>
+                        <p className="text-4xl font-bold leading-tight text-[#19295C]">128</p>
+                        <p className="text-sm" style={{color: '#19295C', opacity: 0.7}}>All time submissions</p>
+                      </div>
                     </div>
-                    <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
-                      <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-slate-600">High Priority</p>
-                      <p className="text-3xl font-bold text-red-600">15</p>
-                      <p className="text-xs text-slate-500">Requires immediate attention</p>
+                    <div className="bg-gradient-to-br from-white/90 via-blue-100/45 to-blue-200/30 backdrop-blur-md p-6 rounded-xl shadow-lg border border-blue-200/60">
+                      <div className="flex flex-col items-start gap-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide" style={{color: '#2D3F7B'}}>High Priority</p>
+                        <p className="text-4xl font-bold leading-tight text-[#19295C]">15</p>
+                        <p className="text-sm" style={{color: '#19295C', opacity: 0.7}}>Requires immediate attention</p>
+                      </div>
                     </div>
-                    <div className="w-12 h-12 bg-red-50 rounded-lg flex items-center justify-center">
-                      <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-slate-600">In Progress</p>
-                      <p className="text-3xl font-bold text-yellow-600">42</p>
-                      <p className="text-xs text-slate-500">Currently being resolved</p>
+                    <div className="bg-gradient-to-br from-white/90 via-blue-100/45 to-blue-200/30 backdrop-blur-md p-6 rounded-xl shadow-lg border border-blue-200/60">
+                      <div className="flex flex-col items-start gap-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide" style={{color: '#2D3F7B'}}>In Progress</p>
+                        <p className="text-4xl font-bold leading-tight text-[#19295C]">42</p>
+                        <p className="text-sm" style={{color: '#19295C', opacity: 0.7}}>Currently being resolved</p>
+                      </div>
                     </div>
-                    <div className="w-12 h-12 bg-yellow-50 rounded-lg flex items-center justify-center">
-                      <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-slate-600">Resolved</p>
-                      <p className="text-3xl font-bold text-green-600">71</p>
-                      <p className="text-xs text-slate-500">Successfully completed</p>
-                    </div>
-                    <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
-                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
+                    <div className="bg-gradient-to-br from-white/90 via-blue-100/45 to-blue-200/30 backdrop-blur-md p-6 rounded-xl shadow-lg border border-blue-200/60">
+                      <div className="flex flex-col items-start gap-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide" style={{color: '#2D3F7B'}}>Resolved</p>
+                        <p className="text-4xl font-bold leading-tight text-[#19295C]">71</p>
+                        <p className="text-sm" style={{color: '#19295C', opacity: 0.7}}>Successfully completed</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -215,56 +320,29 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="divide-y divide-slate-200">
-                  <div className="p-6 hover:bg-slate-50 transition-colors">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h4 className="font-medium text-slate-900">Large pothole on Main Street</h4>
-                          <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded-full">Road Damage</span>
-                          <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">Pending</span>
+                  {recentIssues.map((issue) => (
+                    <div key={issue.id} className="p-6 hover:bg-slate-50 transition-colors">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h4 className="font-medium text-slate-900">{issue.title}</h4>
+                            <span className={`px-2 py-1 text-xs rounded-full ${statusStyles[issue.status]}`}>
+                              {issue.status}
+                            </span>
+                          </div>
+                          <p className="text-sm text-slate-600 mb-2">
+                            <span className="font-medium text-slate-800">{issue.category}</span> - {issue.location}
+                          </p>
+                          <p className="text-xs text-slate-500">{issue.time}</p>
                         </div>
-                        <p className="text-sm text-slate-600 mb-2">📍 123 Main Street, Downtown</p>
-                        <p className="text-xs text-slate-500">about 1 year ago</p>
-                      </div>
-                      <div className="text-right">
-                        <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full text-sm font-semibold">#92</span>
+                        <div className="text-right">
+                          <span className="text-3xl font-black" style={{color: '#4e5569ff'}}>
+                            {issue.id}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="p-6 hover:bg-slate-50 transition-colors">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h4 className="font-medium text-slate-900">Overflowing garbage bins at Central Park</h4>
-                          <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded-full">Waste Management</span>
-                          <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full">In Review</span>
-                        </div>
-                        <p className="text-sm text-slate-600 mb-2">📍 Central Park, Playground Area</p>
-                        <p className="text-xs text-slate-500">about 1 year ago</p>
-                      </div>
-                      <div className="text-right">
-                        <span className="inline-flex items-center justify-center w-8 h-8 bg-green-100 text-green-600 rounded-full text-sm font-semibold">#88</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-6 hover:bg-slate-50 transition-colors">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h4 className="font-medium text-slate-900">Broken street light on Elm Avenue</h4>
-                          <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded-full">Street Light</span>
-                          <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">Pending</span>
-                        </div>
-                        <p className="text-sm text-slate-600 mb-2">📍 45 Elm Avenue, Residential District</p>
-                        <p className="text-xs text-slate-500">about 1 year ago</p>
-                      </div>
-                      <div className="text-right">
-                        <span className="inline-flex items-center justify-center w-8 h-8 bg-yellow-100 text-yellow-600 rounded-full text-sm font-semibold">#65</span>
-                      </div>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>

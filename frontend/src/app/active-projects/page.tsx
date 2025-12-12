@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
@@ -14,33 +14,40 @@ interface Milestone {
 }
 
 interface Project {
-  id: string;
+  id: number;
   title: string;
   description: string;
+  image: string;
   category: string;
   categoryColor: string;
   categoryIcon: string;
-  status: 'planning' | 'in-progress' | 'review' | 'completed';
+  status: 'Planning' | 'In Progress' | 'On Hold' | 'Completed';
   statusColor: string;
   progress: number;
   budget: string;
-  estimatedCompletion: string;
   startDate: string;
+  endDate: string;
+  location: string;
   department: string;
-  priority: 'high' | 'medium' | 'low';
+  priority: 'High' | 'Medium' | 'Low';
   priorityColor: string;
+  teamSize: number;
   milestones: Milestone[];
-  teamMembers: number;
-  location?: string;
+  recentUpdates: {
+    update: string;
+    date: string;
+    author: string;
+    avatar: string;
+  }[];
 }
 
 export default function ActiveProjects() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('active-projects');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterCategory, setFilterCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All Statuses');
+  const [categoryFilter, setCategoryFilter] = useState('All Categories');
 
   const handleLogout = () => {
     router.push('/login');
@@ -48,212 +55,248 @@ export default function ActiveProjects() {
 
   const projectsData: Project[] = [
     {
-      id: '1',
-      title: 'Prithivi Highway Road Reconstruction',
-      description: 'Complete resurfacing and repair of Prithivi Highway between Mangaltar and Khurkot sections',
+      id: 1,
+      title: 'Downtown Road Reconstruction',
+      description: 'Complete reconstruction of Main Street including new asphalt, sidewalks, and drainage systems.',
+      image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=300&h=200&fit=crop',
       category: 'Infrastructure',
       categoryColor: 'bg-blue-100 text-blue-700',
-      categoryIcon: '🛣️',
-      status: 'in-progress',
-      statusColor: 'bg-green-100 text-green-700',
-      progress: 65,
-      budget: '₹ 45,00,000',
-      estimatedCompletion: 'Dec 15, 2024',
-      startDate: 'Oct 1, 2024',
-      department: 'Public Works',
-      priority: 'high',
-      priorityColor: 'bg-red-100 text-red-700',
-      teamMembers: 12,
-      location: 'Prithivi Highway',
-      milestones: [
-        {
-          id: 'm1',
-          title: 'Project Planning & Approval',
-          description: 'Initial planning, budget approval, and permits',
-          status: 'completed',
-          date: 'Oct 1, 2024',
-          completedDate: 'Oct 5, 2024'
-        },
-        {
-          id: 'm2',
-          title: 'Traffic Management Setup',
-          description: 'Implement traffic diversions and safety measures',
-          status: 'completed',
-          date: 'Oct 8, 2024',
-          completedDate: 'Oct 10, 2024'
-        },
-        {
-          id: 'm3',
-          title: 'Road Surface Preparation',
-          description: 'Milling existing surface and base layer repairs',
-          status: 'current',
-          date: 'Oct 15, 2024'
-        },
-        {
-          id: 'm4',
-          title: 'New Asphalt Installation',
-          description: 'Laying new asphalt layers and compaction',
-          status: 'upcoming',
-          date: 'Nov 20, 2024'
-        },
-        {
-          id: 'm5',
-          title: 'Lane Marking & Completion',
-          description: 'Final lane markings, signage, and project handover',
-          status: 'upcoming',
-          date: 'Dec 10, 2024'
-        }
-      ]
-    },
-    {
-      id: '2',
-      title: 'Central Park Waste Management System',
-      description: 'Implementation of new waste collection bins and recycling stations throughout Central Park',
-      category: 'Environment',
-      categoryColor: 'bg-green-100 text-green-700',
-      categoryIcon: '♻️',
-      status: 'planning',
+      categoryIcon: '🏗️',
+      status: 'In Progress',
       statusColor: 'bg-yellow-100 text-yellow-700',
-      progress: 25,
-      budget: '₹ 8,50,000',
-      estimatedCompletion: 'Jan 30, 2025',
-      startDate: 'Nov 15, 2024',
-      department: 'Environmental Services',
-      priority: 'medium',
-      priorityColor: 'bg-yellow-100 text-yellow-700',
-      teamMembers: 6,
-      location: 'Central Park Area',
-      milestones: [
-        {
-          id: 'm1',
-          title: 'Site Survey & Assessment',
-          description: 'Detailed survey of current waste management needs',
-          status: 'completed',
-          date: 'Nov 1, 2024',
-          completedDate: 'Nov 8, 2024'
-        },
-        {
-          id: 'm2',
-          title: 'Equipment Procurement',
-          description: 'Purchase of new bins and recycling stations',
-          status: 'current',
-          date: 'Nov 15, 2024'
-        },
-        {
-          id: 'm3',
-          title: 'Installation Phase',
-          description: 'Installation of new waste management infrastructure',
-          status: 'upcoming',
-          date: 'Dec 1, 2024'
-        },
-        {
-          id: 'm4',
-          title: 'System Testing & Launch',
-          description: 'Testing and public launch of new system',
-          status: 'upcoming',
-          date: 'Jan 15, 2025'
-        }
-      ]
-    },
-    {
-      id: '3',
-      title: 'Riverside Drive Electrical Grid Upgrade',
-      description: 'Modernization of electrical infrastructure for Riverside Drive residential blocks',
-      category: 'Utilities',
-      categoryColor: 'bg-purple-100 text-purple-700',
-      categoryIcon: '⚡',
-      status: 'review',
-      statusColor: 'bg-blue-100 text-blue-700',
-      progress: 90,
-      budget: '₹ 22,00,000',
-      estimatedCompletion: 'Dec 5, 2024',
-      startDate: 'Sep 1, 2024',
-      department: 'Electrical Services',
-      priority: 'high',
+      progress: 65,
+      budget: 'Rs. 2.5 Crores',
+      startDate: 'Jan 15, 2024',
+      endDate: 'June 30, 2024',
+      location: 'Main Street, Downtown',
+      department: 'Public Works',
+      priority: 'High',
       priorityColor: 'bg-red-100 text-red-700',
-      teamMembers: 8,
-      location: 'Riverside Drive',
+      teamSize: 12,
       milestones: [
         {
-          id: 'm1',
-          title: 'Grid Assessment',
-          description: 'Complete assessment of existing electrical infrastructure',
+          id: '1',
+          title: 'Site Preparation',
+          description: 'Clear area and set up safety barriers',
           status: 'completed',
-          date: 'Sep 1, 2024',
-          completedDate: 'Sep 10, 2024'
+          date: 'Jan 20, 2024',
+          completedDate: 'Jan 18, 2024'
         },
         {
-          id: 'm2',
-          title: 'Equipment Installation',
-          description: 'Installation of new transformers and distribution panels',
+          id: '2',
+          title: 'Drainage Installation',
+          description: 'Install new drainage pipes and manholes',
           status: 'completed',
-          date: 'Sep 15, 2024',
-          completedDate: 'Oct 20, 2024'
+          date: 'Feb 15, 2024',
+          completedDate: 'Feb 12, 2024'
         },
         {
-          id: 'm3',
-          title: 'System Testing',
-          description: 'Comprehensive testing of new electrical systems',
-          status: 'completed',
-          date: 'Oct 25, 2024',
-          completedDate: 'Nov 15, 2024'
-        },
-        {
-          id: 'm4',
-          title: 'Final Inspection & Handover',
-          description: 'Final safety inspection and project completion',
+          id: '3',
+          title: 'Road Foundation',
+          description: 'Lay foundation and sub-base materials',
           status: 'current',
-          date: 'Nov 20, 2024'
+          date: 'Mar 10, 2024'
+        },
+        {
+          id: '4',
+          title: 'Asphalt Laying',
+          description: 'Apply asphalt layers and road markings',
+          status: 'upcoming',
+          date: 'Apr 20, 2024'
+        }
+      ],
+      recentUpdates: [
+        {
+          update: 'Foundation work is 80% complete. Weather conditions have been favorable.',
+          date: '2 days ago',
+          author: 'Rajesh Kumar',
+          avatar: 'RK'
+        },
+        {
+          update: 'Drainage system installation completed ahead of schedule.',
+          date: '1 week ago',
+          author: 'Priya Sharma',
+          avatar: 'PS'
         }
       ]
     },
     {
-      id: '4',
-      title: 'Pine Street Traffic Signal Installation',
-      description: 'Installation of new traffic signals at Pine Street & 3rd Avenue intersection',
-      category: 'Traffic Management',
-      categoryColor: 'bg-orange-100 text-orange-700',
-      categoryIcon: '🚦',
-      status: 'in-progress',
-      statusColor: 'bg-green-100 text-green-700',
-      progress: 45,
-      budget: '₹ 12,00,000',
-      estimatedCompletion: 'Jan 10, 2025',
-      startDate: 'Nov 1, 2024',
-      department: 'Traffic Management',
-      priority: 'medium',
+      id: 2,
+      title: 'Central Park Renovation',
+      description: 'Complete renovation including new playground equipment, landscaping, and lighting systems.',
+      image: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=300&h=200&fit=crop',
+      category: 'Parks & Recreation',
+      categoryColor: 'bg-green-100 text-green-700',
+      categoryIcon: '🌳',
+      status: 'Planning',
+      statusColor: 'bg-gray-100 text-gray-700',
+      progress: 25,
+      budget: 'Rs. 1.8 Crores',
+      startDate: 'Mar 1, 2024',
+      endDate: 'Aug 15, 2024',
+      location: 'Central Park',
+      department: 'Parks & Recreation',
+      priority: 'Medium',
       priorityColor: 'bg-yellow-100 text-yellow-700',
-      teamMembers: 5,
-      location: 'Pine Street & 3rd Avenue',
+      teamSize: 8,
       milestones: [
         {
-          id: 'm1',
-          title: 'Site Preparation',
-          description: 'Excavation and foundation work for signal posts',
+          id: '1',
+          title: 'Design Approval',
+          description: 'Finalize park renovation designs',
           status: 'completed',
-          date: 'Nov 1, 2024',
-          completedDate: 'Nov 10, 2024'
+          date: 'Feb 20, 2024',
+          completedDate: 'Feb 18, 2024'
         },
         {
-          id: 'm2',
-          title: 'Signal Post Installation',
-          description: 'Installation of traffic signal posts and mounting hardware',
+          id: '2',
+          title: 'Permit Acquisition',
+          description: 'Obtain necessary construction permits',
           status: 'current',
-          date: 'Nov 15, 2024'
+          date: 'Mar 5, 2024'
         },
         {
-          id: 'm3',
-          title: 'Electrical Connections',
-          description: 'Wiring and electrical connections for signal system',
+          id: '3',
+          title: 'Equipment Procurement',
+          description: 'Purchase playground and lighting equipment',
           status: 'upcoming',
-          date: 'Dec 1, 2024'
+          date: 'Mar 20, 2024'
+        }
+      ],
+      recentUpdates: [
+        {
+          update: 'Design plans approved by city council. Moving to permit phase.',
+          date: '3 days ago',
+          author: 'Amit Thapa',
+          avatar: 'AT'
+        }
+      ]
+    },
+    {
+      id: 3,
+      title: 'Smart Traffic Light System',
+      description: 'Installation of AI-powered traffic management system across 15 major intersections.',
+      image: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=300&h=200&fit=crop',
+      category: 'Technology',
+      categoryColor: 'bg-purple-100 text-purple-700',
+      categoryIcon: '🚦',
+      status: 'In Progress',
+      statusColor: 'bg-yellow-100 text-yellow-700',
+      progress: 45,
+      budget: 'Rs. 3.2 Crores',
+      startDate: 'Dec 1, 2023',
+      endDate: 'May 30, 2024',
+      location: 'City-wide',
+      department: 'Traffic Management',
+      priority: 'High',
+      priorityColor: 'bg-red-100 text-red-700',
+      teamSize: 15,
+      milestones: [
+        {
+          id: '1',
+          title: 'System Design',
+          description: 'Complete traffic flow analysis and system design',
+          status: 'completed',
+          date: 'Dec 15, 2023',
+          completedDate: 'Dec 12, 2023'
         },
         {
-          id: 'm4',
-          title: 'System Testing & Activation',
-          description: 'Testing and activation of traffic signal system',
+          id: '2',
+          title: 'Phase 1 Installation',
+          description: 'Install smart lights at 5 intersections',
+          status: 'completed',
+          date: 'Jan 31, 2024',
+          completedDate: 'Jan 28, 2024'
+        },
+        {
+          id: '3',
+          title: 'Phase 2 Installation',
+          description: 'Install at remaining 10 intersections',
+          status: 'current',
+          date: 'Mar 15, 2024'
+        },
+        {
+          id: '4',
+          title: 'System Testing',
+          description: 'Complete system integration and testing',
           status: 'upcoming',
-          date: 'Dec 20, 2024'
+          date: 'Apr 30, 2024'
+        }
+      ],
+      recentUpdates: [
+        {
+          update: '7 intersections now equipped with smart traffic lights. Testing phase ongoing.',
+          date: '1 day ago',
+          author: 'Suresh Magar',
+          avatar: 'SM'
+        },
+        {
+          update: 'Phase 1 completed successfully. Traffic flow improved by 30%.',
+          date: '1 month ago',
+          author: 'Maya Gurung',
+          avatar: 'MG'
+        }
+      ]
+    },
+    {
+      id: 4,
+      title: 'Community Water Tank Construction',
+      description: 'Construction of large capacity water storage tank to improve water supply reliability.',
+      image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=300&h=200&fit=crop',
+      category: 'Water Supply',
+      categoryColor: 'bg-cyan-100 text-cyan-700',
+      categoryIcon: '💧',
+      status: 'Completed',
+      statusColor: 'bg-green-100 text-green-700',
+      progress: 100,
+      budget: 'Rs. 1.5 Crores',
+      startDate: 'Aug 1, 2023',
+      endDate: 'Dec 15, 2023',
+      location: 'Hillside Area',
+      department: 'Water Department',
+      priority: 'High',
+      priorityColor: 'bg-red-100 text-red-700',
+      teamSize: 10,
+      milestones: [
+        {
+          id: '1',
+          title: 'Foundation',
+          description: 'Complete foundation and base structure',
+          status: 'completed',
+          date: 'Aug 30, 2023',
+          completedDate: 'Aug 25, 2023'
+        },
+        {
+          id: '2',
+          title: 'Tank Construction',
+          description: 'Build main water storage tank',
+          status: 'completed',
+          date: 'Oct 15, 2023',
+          completedDate: 'Oct 10, 2023'
+        },
+        {
+          id: '3',
+          title: 'Pipeline Connection',
+          description: 'Connect to existing water distribution network',
+          status: 'completed',
+          date: 'Nov 20, 2023',
+          completedDate: 'Nov 15, 2023'
+        },
+        {
+          id: '4',
+          title: 'Testing & Commissioning',
+          description: 'System testing and final commissioning',
+          status: 'completed',
+          date: 'Dec 15, 2023',
+          completedDate: 'Dec 12, 2023'
+        }
+      ],
+      recentUpdates: [
+        {
+          update: 'Project completed successfully. Water supply improved by 40% in the area.',
+          date: '2 months ago',
+          author: 'Krishna Bahadur',
+          avatar: 'KB'
         }
       ]
     }
@@ -261,11 +304,11 @@ export default function ActiveProjects() {
 
   const filteredProjects = projectsData.filter(project => {
     const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.department.toLowerCase().includes(searchTerm.toLowerCase());
+                         project.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         project.category.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = filterStatus === 'all' || project.status === filterStatus;
-    const matchesCategory = filterCategory === 'all' || project.category.toLowerCase() === filterCategory.toLowerCase();
+    const matchesStatus = statusFilter === 'All Statuses' || project.status === statusFilter;
+    const matchesCategory = categoryFilter === 'All Categories' || project.category === categoryFilter;
     
     return matchesSearch && matchesStatus && matchesCategory;
   });
@@ -274,11 +317,11 @@ export default function ActiveProjects() {
     setSelectedProject(project);
   };
 
-  const handleBackToProjects = () => {
+  const handleBackToList = () => {
     setSelectedProject(null);
   };
 
-  // Project Detail View
+  // If a project is selected, show the detailed view
   if (selectedProject) {
     return (
       <div className="min-h-screen bg-slate-50">
@@ -290,145 +333,209 @@ export default function ActiveProjects() {
           </div>
           
           <div className="flex-1 p-8">
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-6xl mx-auto">
               {/* Back Button */}
               <button 
-                onClick={handleBackToProjects}
+                onClick={handleBackToList}
                 className="mb-6 flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
-                Back to Projects
+                Back to Projects List
               </button>
 
               {/* Project Header */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 mb-6">
-                <div className="flex items-start justify-between mb-6">
-                  <div className="flex-1">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+                <div className="relative h-48">
+                  <img 
+                    src={selectedProject.image} 
+                    alt={selectedProject.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                  <div className="absolute bottom-6 left-6 right-6">
                     <div className="flex items-center gap-3 mb-3">
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedProject.categoryColor}`}>
                         {selectedProject.categoryIcon} {selectedProject.category}
                       </span>
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedProject.statusColor}`}>
-                        {selectedProject.status.charAt(0).toUpperCase() + selectedProject.status.slice(1).replace('-', ' ')}
+                        {selectedProject.status}
                       </span>
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedProject.priorityColor}`}>
-                        {selectedProject.priority.charAt(0).toUpperCase() + selectedProject.priority.slice(1)} Priority
+                        {selectedProject.priority} Priority
                       </span>
                     </div>
-                    <h1 className="text-3xl font-bold text-slate-900 mb-3">{selectedProject.title}</h1>
-                    <p className="text-slate-600 text-lg leading-relaxed">{selectedProject.description}</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-3xl font-bold text-blue-600 mb-1">{selectedProject.progress}%</div>
-                    <div className="text-sm text-slate-500">Complete</div>
-                  </div>
-                </div>
-
-                {/* Project Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  <div className="text-center p-4 bg-slate-50 rounded-lg">
-                    <div className="text-xl font-bold text-slate-900">{selectedProject.budget}</div>
-                    <div className="text-sm text-slate-500">Budget</div>
-                  </div>
-                  <div className="text-center p-4 bg-slate-50 rounded-lg">
-                    <div className="text-xl font-bold text-slate-900">{selectedProject.estimatedCompletion}</div>
-                    <div className="text-sm text-slate-500">Est. Completion</div>
-                  </div>
-                  <div className="text-center p-4 bg-slate-50 rounded-lg">
-                    <div className="text-xl font-bold text-slate-900">{selectedProject.teamMembers}</div>
-                    <div className="text-sm text-slate-500">Team Members</div>
-                  </div>
-                  <div className="text-center p-4 bg-slate-50 rounded-lg">
-                    <div className="text-xl font-bold text-slate-900">{selectedProject.department}</div>
-                    <div className="text-sm text-slate-500">Department</div>
+                    <h1 className="text-2xl font-bold text-white mb-2">{selectedProject.title}</h1>
+                    <p className="text-white/90">{selectedProject.description}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Project Timeline */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
-                <h2 className="text-xl font-bold text-slate-900 mb-6">Project Timeline</h2>
-                
-                <div className="relative">
-                  {selectedProject.milestones.map((milestone, index) => (
-                    <div key={milestone.id} className="flex items-start gap-6 pb-8 last:pb-0">
-                      {/* Timeline Line */}
-                      <div className="relative flex flex-col items-center">
-                        <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${
-                          milestone.status === 'completed' ? 'bg-green-500 border-green-500' :
-                          milestone.status === 'current' ? 'bg-blue-500 border-blue-500' :
-                          'bg-white border-slate-300'
-                        }`}>
-                          {milestone.status === 'completed' && (
-                            <svg className="w-3 h-3 text-white m-0.5" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          )}
-                        </div>
-                        {index < selectedProject.milestones.length - 1 && (
-                          <div className={`w-0.5 h-16 mt-2 ${
-                            milestone.status === 'completed' ? 'bg-green-500' :
-                            milestone.status === 'current' ? 'bg-gradient-to-b from-blue-500 to-slate-300' :
-                            'bg-slate-300'
-                          }`} />
-                        )}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Main Content */}
+                <div className="lg:col-span-2 space-y-6">
+                  {/* Progress Overview */}
+                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-4">Progress Overview</h3>
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-slate-700">Overall Progress</span>
+                        <span className="text-sm font-bold text-slate-900">{selectedProject.progress}%</span>
                       </div>
-
-                      {/* Milestone Content */}
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className={`font-semibold text-lg ${
-                              milestone.status === 'completed' ? 'text-green-900' :
-                              milestone.status === 'current' ? 'text-blue-900' :
-                              'text-slate-700'
-                            }`}>
-                              {milestone.title}
-                            </h3>
-                            <p className="text-slate-600 mt-1">{milestone.description}</p>
-                            <div className="flex items-center gap-4 mt-3">
-                              <div className="flex items-center gap-2 text-sm">
-                                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <span className="text-slate-600">
-                                  {milestone.status === 'completed' && milestone.completedDate ? 
-                                    `Completed: ${milestone.completedDate}` : 
-                                    `Scheduled: ${milestone.date}`
-                                  }
-                                </span>
-                              </div>
-                              {milestone.status === 'completed' && (
-                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                                  Completed
-                                </span>
-                              )}
-                              {milestone.status === 'current' && (
-                                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                                  In Progress
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
+                      <div className="w-full bg-slate-200 rounded-full h-3">
+                        <div 
+                          className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500"
+                          style={{width: `${selectedProject.progress}%`}}
+                        ></div>
                       </div>
                     </div>
-                  ))}
+                    
+                    {/* Project Stats */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                      <div className="text-center p-4 bg-slate-50 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-600">{selectedProject.budget}</div>
+                        <div className="text-sm text-slate-500">Budget</div>
+                      </div>
+                      <div className="text-center p-4 bg-slate-50 rounded-lg">
+                        <div className="text-2xl font-bold text-green-600">{selectedProject.teamSize}</div>
+                        <div className="text-sm text-slate-500">Team Members</div>
+                      </div>
+                      <div className="text-center p-4 bg-slate-50 rounded-lg">
+                        <div className="text-2xl font-bold text-purple-600">{selectedProject.milestones.length}</div>
+                        <div className="text-sm text-slate-500">Milestones</div>
+                      </div>
+                      <div className="text-center p-4 bg-slate-50 rounded-lg">
+                        <div className="text-2xl font-bold text-orange-600">
+                          {selectedProject.milestones.filter(m => m.status === 'completed').length}
+                        </div>
+                        <div className="text-sm text-slate-500">Completed</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Timeline */}
+                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-6">Project Timeline</h3>
+                    <div className="space-y-4">
+                      {selectedProject.milestones.map((milestone, index) => (
+                        <div key={milestone.id} className="flex gap-4">
+                          <div className="flex flex-col items-center">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              milestone.status === 'completed' ? 'bg-green-500' :
+                              milestone.status === 'current' ? 'bg-blue-500' : 'bg-slate-300'
+                            }`}>
+                              {milestone.status === 'completed' ? (
+                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                              ) : milestone.status === 'current' ? (
+                                <div className="w-3 h-3 bg-white rounded-full"></div>
+                              ) : (
+                                <div className="w-3 h-3 bg-slate-500 rounded-full"></div>
+                              )}
+                            </div>
+                            {index < selectedProject.milestones.length - 1 && (
+                              <div className={`w-0.5 h-12 ${
+                                milestone.status === 'completed' ? 'bg-green-500' : 'bg-slate-200'
+                              }`}></div>
+                            )}
+                          </div>
+                          <div className="flex-1 pb-8">
+                            <div className="flex items-center justify-between mb-1">
+                              <h4 className="font-semibold text-slate-900">{milestone.title}</h4>
+                              <span className="text-sm text-slate-500">
+                                {milestone.status === 'completed' ? milestone.completedDate : milestone.date}
+                              </span>
+                            </div>
+                            <p className="text-slate-600 text-sm">{milestone.description}</p>
+                            {milestone.status === 'completed' && (
+                              <span className="inline-flex items-center gap-1 text-green-600 text-sm mt-2">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                                Completed
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Recent Updates */}
+                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-4">Recent Updates</h3>
+                    <div className="space-y-4">
+                      {selectedProject.recentUpdates.map((update, index) => (
+                        <div key={index} className="flex gap-4 p-4 bg-slate-50 rounded-xl">
+                          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-white font-semibold text-sm">{update.avatar}</span>
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <span className="font-semibold text-slate-900">{update.author}</span>
+                              <span className="text-sm text-slate-500">{update.date}</span>
+                            </div>
+                            <p className="text-slate-700 leading-relaxed">{update.update}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
-                {/* Overall Progress Bar */}
-                <div className="mt-8 pt-6 border-t border-slate-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-slate-700">Overall Progress</span>
-                    <span className="text-sm font-medium text-slate-900">{selectedProject.progress}%</span>
+                {/* Sidebar */}
+                <div className="space-y-6">
+                  {/* Project Details */}
+                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-4">Project Details</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span className="text-slate-700">{selectedProject.location}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <span className="text-slate-700">{selectedProject.department}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-slate-700">{selectedProject.startDate}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-slate-700">{selectedProject.endDate}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="w-full bg-slate-200 rounded-full h-3">
-                    <div 
-                      className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500"
-                      style={{ width: `${selectedProject.progress}%` }}
-                    />
+
+                  {/* Actions */}
+                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-4">Actions</h3>
+                    <div className="space-y-3">
+                      <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                        Update Progress
+                      </button>
+                      <button className="w-full px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors">
+                        Add Milestone
+                      </button>
+                      <button className="w-full px-4 py-2 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors">
+                        Generate Report
+                      </button>
+                      <button className="w-full px-4 py-2 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors">
+                        View Documents
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -439,7 +546,7 @@ export default function ActiveProjects() {
     );
   }
 
-  // Main Projects List View
+  // Default view - Projects table/list
   return (
     <div className="min-h-screen bg-slate-50">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
@@ -451,9 +558,15 @@ export default function ActiveProjects() {
         
         <div className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
+            {/* Header */}
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-slate-800 mb-2">Active Projects</h1>
+              <p className="text-slate-600">Monitor and manage ongoing community development projects</p>
+            </div>
+
             {/* Search and Filters */}
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6">
-              <div className="flex items-center gap-4">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-6">
+              <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1 relative">
                   <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -463,96 +576,33 @@ export default function ActiveProjects() {
                     placeholder="Search projects..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-black placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg text-black placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
 
                 <select 
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="px-3 py-2 border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="px-4 py-3 border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="all">All Statuses</option>
-                  <option value="planning">Planning</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="review">Review</option>
-                  <option value="completed">Completed</option>
+                  <option>All Statuses</option>
+                  <option>Planning</option>
+                  <option>In Progress</option>
+                  <option>On Hold</option>
+                  <option>Completed</option>
                 </select>
 
                 <select 
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                  className="px-3 py-2 border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="px-4 py-3 border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="all">All Categories</option>
-                  <option value="infrastructure">Infrastructure</option>
-                  <option value="environment">Environment</option>
-                  <option value="utilities">Utilities</option>
-                  <option value="traffic management">Traffic Management</option>
+                  <option>All Categories</option>
+                  <option>Infrastructure</option>
+                  <option>Parks & Recreation</option>
+                  <option>Technology</option>
+                  <option>Water Supply</option>
                 </select>
-              </div>
-            </div>
-
-            {/* Projects Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-slate-900">{projectsData.length}</div>
-                    <div className="text-sm text-slate-500">Total Projects</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-slate-900">
-                      {projectsData.filter(p => p.status === 'in-progress').length}
-                    </div>
-                    <div className="text-sm text-slate-500">In Progress</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-slate-900">
-                      {projectsData.filter(p => p.status === 'planning').length}
-                    </div>
-                    <div className="text-sm text-slate-500">Planning</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <span className="text-lg font-bold text-purple-600">₹</span>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-slate-900">
-                      {Math.round(projectsData.reduce((acc, p) => acc + parseFloat(p.budget.replace(/[₹,]/g, '')), 0) / 100000)}L
-                    </div>
-                    <div className="text-sm text-slate-500">Total Budget</div>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -562,76 +612,93 @@ export default function ActiveProjects() {
             </div>
 
             {/* Projects Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProjects.map((project) => (
                 <div 
-                  key={project.id} 
+                  key={project.id}
+                  className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
                   onClick={() => handleProjectClick(project)}
-                  className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-all duration-200 cursor-pointer"
                 >
-                  {/* Project Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${project.categoryColor}`}>
-                          {project.categoryIcon} {project.category}
-                        </span>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${project.statusColor}`}>
-                          {project.status.charAt(0).toUpperCase() + project.status.slice(1).replace('-', ' ')}
-                        </span>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${project.priorityColor}`}>
-                          {project.priority.charAt(0).toUpperCase() + project.priority.slice(1)}
-                        </span>
-                      </div>
-                      <h3 className="text-lg font-semibold text-slate-900 mb-2">{project.title}</h3>
-                      <p className="text-slate-600 text-sm line-clamp-2">{project.description}</p>
+                  {/* Project Image */}
+                  <div className="relative h-48">
+                    <img 
+                      src={project.image} 
+                      alt={project.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute top-3 left-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${project.statusColor}`}>
+                        {project.status}
+                      </span>
                     </div>
-                    <div className="text-right ml-4">
-                      <div className="text-lg font-bold text-blue-600">{project.progress}%</div>
-                      <div className="text-xs text-slate-500">Complete</div>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="mb-4">
-                    <div className="w-full bg-slate-200 rounded-full h-2">
-                      <div 
-                        className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500"
-                        style={{ width: `${project.progress}%` }}
-                      />
+                    <div className="absolute top-3 right-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${project.priorityColor}`}>
+                        {project.priority}
+                      </span>
                     </div>
                   </div>
 
                   {/* Project Details */}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-slate-500">Budget:</span>
-                      <span className="ml-2 font-medium text-slate-900">{project.budget}</span>
+                  <div className="p-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${project.categoryColor}`}>
+                        {project.categoryIcon} {project.category}
+                      </span>
                     </div>
-                    <div>
-                      <span className="text-slate-500">Completion:</span>
-                      <span className="ml-2 font-medium text-slate-900">{project.estimatedCompletion}</span>
+
+                    <h3 className="text-lg font-semibold text-slate-900 mb-2 line-clamp-2">
+                      {project.title}
+                    </h3>
+
+                    <p className="text-slate-600 text-sm mb-4 line-clamp-2">
+                      {project.description}
+                    </p>
+
+                    {/* Progress Bar */}
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-slate-700">Progress</span>
+                        <span className="text-sm font-bold text-slate-900">{project.progress}%</span>
+                      </div>
+                      <div className="w-full bg-slate-200 rounded-full h-2">
+                        <div 
+                          className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full"
+                          style={{width: `${project.progress}%`}}
+                        ></div>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-slate-500">Department:</span>
-                      <span className="ml-2 font-medium text-slate-900">{project.department}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500">Team:</span>
-                      <span className="ml-2 font-medium text-slate-900">{project.teamMembers} members</span>
+
+                    {/* Project Meta */}
+                    <div className="space-y-2 text-sm text-slate-600">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span className="truncate">{project.location}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                          </svg>
+                          <span>{project.budget}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          <span>{project.teamSize} members</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span>{project.startDate} - {project.endDate}</span>
+                      </div>
                     </div>
                   </div>
-
-                  {/* Location */}
-                  {project.location && (
-                    <div className="mt-3 flex items-center gap-2 text-sm text-slate-600">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      <span>{project.location}</span>
-                    </div>
-                  )}
                 </div>
               ))}
             </div>

@@ -45,7 +45,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="admin@example.com"
+              placeholder="Enter your email"
               required
             />
           </div>
@@ -57,7 +57,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="password123"
+              placeholder="Enter your password"
               required
             />
           </div>
@@ -94,9 +94,6 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <p className="mt-4 text-sm text-gray-600 text-center">
-          Demo: admin@example.com / password123
-        </p>
       </div>
     </div>
   );
