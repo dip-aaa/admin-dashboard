@@ -46,14 +46,7 @@ export default function CitizenProposals() {
   // if editing an existing draft, hold its id
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
 
-  // load Poppins & small UI polish once
-  useEffect(() => {
-    const link = document.createElement('link');
-    link.href = 'https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap';
-    link.rel = 'stylesheet';
-    document.head.appendChild(link);
-    return () => { document.head.removeChild(link); };
-  }, []);
+  // (font) Poppins is now loaded globally from RootLayout
 
   // toast helper
   useEffect(() => {
