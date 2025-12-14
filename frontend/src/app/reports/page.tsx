@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
+import ReportCard from '@/components/ReportCard';
 
 interface CompletedProject {
   id: string;
@@ -48,6 +49,8 @@ export default function Reports() {
   const [filterPeriod, setFilterPeriod] = useState('all');
   const [filterDepartment, setFilterDepartment] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [periodOpen, setPeriodOpen] = useState(false);
+  const [deptOpen, setDeptOpen] = useState(false);
 
   const handleLogout = () => {
     router.push('/login');
@@ -236,6 +239,85 @@ export default function Reports() {
         qualityScore: 94,
         stakeholderSatisfaction: 95
       }
+    }
+    ,
+    {
+      id: 'cp4',
+      title: 'Neighborhood Lighting Upgrade',
+      description: 'Upgrade of street lighting in several residential neighborhoods to LED fixtures to improve safety and reduce energy use.',
+      category: 'Lighting',
+      categoryColor: 'bg-yellow-100 text-yellow-700',
+      categoryIcon: '💡',
+      completedDate: 'December 5, 2024',
+      startDate: 'October 1, 2024',
+      actualBudget: '₹ 6,20,000',
+      plannedBudget: '₹ 6,50,000',
+      actualDuration: '1.5 months',
+      plannedDuration: '2 months',
+      department: 'Public Works',
+      teamMembers: ['Nina Joshi (Lead)', 'Suresh Patel (Electrician)'],
+      location: 'Northside, Sector 4',
+      beneficiaries: 4200,
+      satisfactionScore: 90,
+      objectives: ['Replace old sodium lamps with LEDs', 'Improve night-time visibility', 'Reduce energy consumption'],
+      challenges: ['Supply delays', 'Access to some poles'],
+      outcomes: ['Reduced energy usage by 60%', 'Improved visibility and fewer safety complaints'],
+      recommendations: ['Roll out to additional neighborhoods', 'Schedule yearly maintenance checks'],
+      photos: [],
+      financialBreakdown: { materials: '₹ 4,00,000', labor: '₹ 1,50,000', equipment: '₹ 50,000', miscellaneous: '₹ 20,000' },
+      kpis: { onTime: true, onBudget: true, qualityScore: 87, stakeholderSatisfaction: 90 }
+    },
+    {
+      id: 'cp5',
+      title: 'Community Clinic Renovation',
+      description: 'Renovation of the local community clinic to expand capacity and improve patient experience.',
+      category: 'Health',
+      categoryColor: 'bg-red-100 text-red-700',
+      categoryIcon: '🏥',
+      completedDate: 'November 10, 2024',
+      startDate: 'August 20, 2024',
+      actualBudget: '₹ 14,00,000',
+      plannedBudget: '₹ 13,50,000',
+      actualDuration: '2.8 months',
+      plannedDuration: '3 months',
+      department: 'Health Services',
+      teamMembers: ['Dr. Anil Mehta (Coordinator)', 'Rita Karki (Nurse Supervisor)'],
+      location: 'Eastside Clinic',
+      beneficiaries: 3200,
+      satisfactionScore: 94,
+      objectives: ['Expand waiting area', 'Upgrade examination rooms', 'Improve hygiene facilities'],
+      challenges: ['Coordination with clinic staff', 'Temporary relocation during works'],
+      outcomes: ['Increased patient throughput', 'Higher patient satisfaction scores'],
+      recommendations: ['Consider satellite clinics in other sectors'],
+      photos: [],
+      financialBreakdown: { materials: '₹ 8,00,000', labor: '₹ 4,00,000', equipment: '₹ 1,00,000', miscellaneous: '₹ 1,00,000' },
+      kpis: { onTime: true, onBudget: false, qualityScore: 92, stakeholderSatisfaction: 94 }
+    },
+    {
+      id: 'cp6',
+      title: 'Riverbank Erosion Control',
+      description: 'Stabilization work and planting along the riverbank to prevent erosion and protect nearby properties.',
+      category: 'Environment',
+      categoryColor: 'bg-green-100 text-green-700',
+      categoryIcon: '🌿',
+      completedDate: 'October 2, 2024',
+      startDate: 'July 1, 2024',
+      actualBudget: '₹ 10,50,000',
+      plannedBudget: '₹ 11,00,000',
+      actualDuration: '3 months',
+      plannedDuration: '3 months',
+      department: 'Environmental Services',
+      teamMembers: ['Hari Singh (Ecologist)', 'Mina Rai (Field Lead)'],
+      location: 'Riverbend District',
+      beneficiaries: 6000,
+      satisfactionScore: 88,
+      objectives: ['Install gabion walls', 'Plant native vegetation', 'Monitor erosion rates'],
+      challenges: ['Heavy rains during work window', 'Sourcing native plants'],
+      outcomes: ['Reduced visible erosion by 80%', 'Improved habitat for local species'],
+      recommendations: ['Ongoing monitoring and maintenance'],
+      photos: [],
+      financialBreakdown: { materials: '₹ 6,00,000', labor: '₹ 3,00,000', equipment: '₹ 1,00,000', miscellaneous: '₹ 50,000' },
+      kpis: { onTime: false, onBudget: true, qualityScore: 85, stakeholderSatisfaction: 88 }
     }
   ];
 
@@ -597,104 +679,149 @@ export default function Reports() {
         
         <div className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
-            {/* Search and Filters */}
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6">
-              <div className="flex items-center gap-4">
-                <div className="flex-1 relative">
-                  <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {/* Sticky search/filter region (matches Active Projects) */}
+            <div className="sticky top-20 z-30 bg-slate-50 py-4 mb-6">
+              <div className="max-w-3xl mx-auto">
+                <div className="relative">
+                  <svg className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
-                  <input
-                    type="text"
-                    placeholder="Search completed projects..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-black placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
+
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search completed projects..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-12 pr-12 py-4 border border-slate-200 rounded-full text-black placeholder-slate-500 focus:outline-none relative z-10"
+                    />
+
+                    {/* decorative bluish gradient flow behind input */}
+                    <div aria-hidden className="pointer-events-none absolute inset-0 rounded-full overflow-hidden z-0">
+                      <div className="absolute h-full w-[45%] opacity-30 gradient-flow"></div>
+                    </div>
+
+                    {/* small right action icon */}
+                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-500 z-20">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v4m0 8v4m8-8h-4M4 12H8" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
 
-                <select 
-                  value={filterPeriod}
-                  onChange={(e) => setFilterPeriod(e.target.value)}
-                  className="px-3 py-2 border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">All Time</option>
-                  <option value="30days">Last 30 Days</option>
-                  <option value="6months">Last 6 Months</option>
-                  <option value="1year">Last Year</option>
-                </select>
+                {/* Styled dropdowns placed below the search */}
+                <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+                  {/* Period dropdown */}
+                  <div className="w-full sm:w-64 relative">
+                    <button
+                      type="button"
+                      onClick={() => { setPeriodOpen(!periodOpen); setDeptOpen(false); }}
+                      className={`w-full flex items-center justify-between px-4 py-2 border border-blue-100 rounded-lg bg-white shadow-sm hover:shadow-md focus:outline-none transition-colors duration-150 ${periodOpen ? 'ring-2 ring-[#19295C]/15' : ''}`}
+                      aria-haspopup="true"
+                      aria-expanded={periodOpen}
+                    >
+                      <span className={`${periodOpen ? 'text-[#19295C] font-semibold' : 'text-[#2D3F7B]'} text-sm`}>
+                        {filterPeriod === 'all' ? 'All Time' : filterPeriod === '30days' ? 'Last 30 Days' : filterPeriod === '6months' ? 'Last 6 Months' : 'Last Year'}
+                      </span>
+                      <svg className={`w-4 h-4 transform transition-transform duration-200 ${periodOpen ? 'rotate-180 text-[#19295C]' : 'text-[#2D3F7B]'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
 
-                <select 
-                  value={filterDepartment}
-                  onChange={(e) => setFilterDepartment(e.target.value)}
-                  className="px-3 py-2 border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">All Departments</option>
-                  <option value="public works">Public Works</option>
-                  <option value="environmental services">Environmental Services</option>
-                  <option value="traffic management">Traffic Management</option>
-                </select>
+                    {periodOpen && (
+                      <ul className="absolute z-50 mt-2 w-full bg-white border border-blue-100 rounded-lg shadow-lg max-h-56 overflow-auto py-1">
+                        {[
+                          { key: 'all', label: 'All Time' },
+                          { key: '30days', label: 'Last 30 Days' },
+                          { key: '6months', label: 'Last 6 Months' },
+                          { key: '1year', label: 'Last Year' }
+                        ].map(opt => (
+                          <li
+                            key={opt.key}
+                            onClick={() => { setFilterPeriod(opt.key); setPeriodOpen(false); }}
+                            role="option"
+                            aria-selected={opt.key === filterPeriod}
+                            className={`px-4 py-2 cursor-pointer text-sm transition-colors ${opt.key === filterPeriod ? 'bg-[#19295C] text-white font-semibold' : 'text-slate-900 hover:bg-[#e6f3ff] hover:text-[#19295C]'}`}
+                          >
+                            {opt.label}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* Department dropdown */}
+                  <div className="w-full sm:w-64 relative">
+                    <button
+                      type="button"
+                      onClick={() => { setDeptOpen(!deptOpen); setPeriodOpen(false); }}
+                      className={`w-full flex items-center justify-between px-4 py-2 border border-blue-100 rounded-lg bg-white shadow-sm hover:shadow-md focus:outline-none transition-colors duration-150 ${deptOpen ? 'ring-2 ring-[#19295C]/15' : ''}`}
+                      aria-haspopup="true"
+                      aria-expanded={deptOpen}
+                    >
+                      <span className={`${deptOpen ? 'text-[#19295C] font-semibold' : 'text-[#2D3F7B]'} text-sm`}>{filterDepartment === 'all' ? 'All Departments' : filterDepartment}</span>
+                      <svg className={`w-4 h-4 transform transition-transform duration-200 ${deptOpen ? 'rotate-180 text-[#19295C]' : 'text-[#2D3F7B]'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {deptOpen && (
+                      <ul className="absolute z-50 mt-2 w-full bg-white border border-blue-100 rounded-lg shadow-lg max-h-56 overflow-auto py-1">
+                        {[
+                          { key: 'all', label: 'All Departments' },
+                          { key: 'public works', label: 'Public Works' },
+                          { key: 'environmental services', label: 'Environmental Services' },
+                          { key: 'traffic management', label: 'Traffic Management' }
+                        ].map(opt => (
+                          <li
+                            key={opt.key}
+                            onClick={() => { setFilterDepartment(opt.key); setDeptOpen(false); }}
+                            role="option"
+                            aria-selected={opt.key === filterDepartment}
+                            className={`px-4 py-2 cursor-pointer text-sm transition-colors ${opt.key === filterDepartment ? 'bg-[#19295C] text-white font-semibold' : 'text-slate-900 hover:bg-[#e6f3ff] hover:text-[#19295C]'}`}
+                          >
+                            {opt.label}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Reports Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="p-0 bg-transparent shadow-none border-0">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-100/40 to-blue-200/20 backdrop-blur-sm border-[3px] border-blue-300/60 flex items-center justify-center bubble-float">
+                    <div className="text-xl font-bold text-[#19295C]">{completedProjects.length}</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-slate-900">{completedProjects.length}</div>
-                    <div className="text-sm text-slate-500">Completed Projects</div>
+                    <div className="text-lg text-[#19295C] font-semibold slide-from-bubble" style={{ animationDelay: '0.12s' }}>Completed Projects</div>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+              <div className="p-0 bg-transparent shadow-none border-0">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <span className="text-lg font-bold text-blue-600">₹</span>
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-100/40 to-blue-200/20 backdrop-blur-sm border-[3px] border-blue-300/60 flex items-center justify-center bubble-float">
+                    <div className="text-xl font-bold text-[#19295C]">{Math.round(completedProjects.reduce((acc, p) => acc + parseFloat(p.actualBudget.replace(/[₹,]/g, '')), 0) / 100000)}L</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-slate-900">
-                      {Math.round(completedProjects.reduce((acc, p) => acc + parseFloat(p.actualBudget.replace(/[₹,]/g, '')), 0) / 100000)}L
-                    </div>
-                    <div className="text-sm text-slate-500">Total Investment</div>
+                    <div className="text-lg text-[#19295C] font-semibold slide-from-bubble" style={{ animationDelay: '0.18s' }}>Total Investment</div>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+              <div className="p-0 bg-transparent shadow-none border-0">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-100/40 to-blue-200/20 backdrop-blur-sm border-[3px] border-blue-300/60 flex items-center justify-center bubble-float">
+                    <div className="text-xl font-bold text-[#19295C]">{Math.round(completedProjects.reduce((acc, p) => acc + p.satisfactionScore, 0) / completedProjects.length)}%</div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-slate-900">
-                      {completedProjects.reduce((acc, p) => acc + p.beneficiaries, 0).toLocaleString()}
-                    </div>
-                    <div className="text-sm text-slate-500">Citizens Benefited</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-slate-900">
-                      {Math.round(completedProjects.reduce((acc, p) => acc + p.satisfactionScore, 0) / completedProjects.length)}%
-                    </div>
-                    <div className="text-sm text-slate-500">Avg Satisfaction</div>
+                    <div className="text-lg text-[#19295C] font-semibold slide-from-bubble" style={{ animationDelay: '0.24s' }}>Avg Satisfaction</div>
                   </div>
                 </div>
               </div>
@@ -705,59 +832,21 @@ export default function Reports() {
               <p className="text-slate-600">Showing {filteredProjects.length} of {completedProjects.length} completed projects</p>
             </div>
 
-            {/* Reports List */}
-            <div className="space-y-6">
+            {/* Reports List - use ReportCard component */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10 auto-rows-fr items-stretch">
               {filteredProjects.map((project) => (
-                <div 
-                  key={project.id} 
+                <ReportCard
+                  key={project.id}
+                  id={project.id}
+                  title={project.title}
+                  department={project.department}
+                  completedDate={project.completedDate}
+                  satisfactionScore={project.satisfactionScore}
+                  category={project.category}
+                  categoryColor={project.categoryColor}
+                  categoryIcon={project.categoryIcon}
                   onClick={() => handleProjectClick(project)}
-                  className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-all duration-200 cursor-pointer"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${project.categoryColor}`}>
-                          {project.categoryIcon} {project.category}
-                        </span>
-                        <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                          Completed
-                        </span>
-                        <span className="text-sm text-slate-500">
-                          Completed on {project.completedDate}
-                        </span>
-                      </div>
-                      <h3 className="text-xl font-bold text-slate-900 mb-2">{project.title}</h3>
-                      <p className="text-slate-600 leading-relaxed mb-4">{project.description}</p>
-                      
-                      {/* Project Summary Stats */}
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <span className="text-slate-500">Budget:</span>
-                          <span className="ml-2 font-medium text-slate-900">{project.actualBudget}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500">Duration:</span>
-                          <span className="ml-2 font-medium text-slate-900">{project.actualDuration}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500">Beneficiaries:</span>
-                          <span className="ml-2 font-medium text-slate-900">{project.beneficiaries.toLocaleString()}</span>
-                        </div>
-                        <div>
-                          <span className="text-slate-500">Department:</span>
-                          <span className="ml-2 font-medium text-slate-900">{project.department}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right ml-6">
-                      <div className="text-2xl font-bold text-green-600 mb-1">{project.satisfactionScore}%</div>
-                      <div className="text-sm text-slate-500">Satisfaction</div>
-                      <svg className="w-5 h-5 text-slate-400 mt-2 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
+                />
               ))}
             </div>
           </div>

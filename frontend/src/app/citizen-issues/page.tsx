@@ -403,7 +403,7 @@ export default function CitizenIssues() {
         <div className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
             {/* Search and Filters */}
-            <div className="bg-white p-4 rounded-2xl shadow-md border border-slate-100 mb-6">
+            <div className="bg-transparent p-4 rounded-2xl mb-6">
               <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
                 {/* Search */}
                 <div className="flex-1 relative w-full lg:w-auto">

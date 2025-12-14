@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
+import GovernmentProjectCard from '@/components/GovernmentProjectCard';
 
 interface Milestone {
   id: string;
@@ -48,6 +49,8 @@ export default function ActiveProjects() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Statuses');
   const [categoryFilter, setCategoryFilter] = useState('All Categories');
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [categoryOpen, setCategoryOpen] = useState(false);
 
   const handleLogout = () => {
     router.push('/login');
@@ -557,154 +560,201 @@ export default function ActiveProjects() {
         </div>
         
         <div className="flex-1 p-8">
-          <div className="max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-slate-800 mb-2">Active Projects</h1>
-              <p className="text-slate-600">Monitor and manage ongoing community development projects</p>
-            </div>
+            <div className="max-w-7xl mx-auto">
+              {/* Sticky search bar: stays visible while only results scroll */}
+              <div className="sticky top-20 z-30 bg-slate-50 py-4 mb-6">
+                <div className="max-w-3xl mx-auto">
+                  <div className="relative">
+                    <svg className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
 
-            {/* Search and Filters */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-6">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 relative">
-                  <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  <input
-                    type="text"
-                    placeholder="Search projects..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg text-black placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Search projects..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-12 pr-12 py-4 border border-slate-200 rounded-full text-black placeholder-slate-500 focus:outline-none relative z-10"
+                      />
+
+                      {/* decorative bluish gradient flow behind input */}
+                      <div aria-hidden className="pointer-events-none absolute inset-0 rounded-full overflow-hidden z-0">
+                        <div className="absolute h-full w-[45%] opacity-30 gradient-flow"></div>
+                      </div>
+
+                      {/* small right action icon */}
+                      <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-500 z-20">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v4m0 8v4m8-8h-4M4 12H8" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Styled dropdowns placed below the search */}
+                  <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+                    {/* Status dropdown */}
+                    <div className="w-full sm:w-64 relative">
+                      <button
+                        type="button"
+                        onClick={() => { setStatusOpen(!statusOpen); setCategoryOpen(false); }}
+                        className={`w-full flex items-center justify-between px-4 py-2 border rounded-lg bg-white shadow-sm hover:shadow-md focus:outline-none transition-colors duration-150 ${
+                          statusOpen ? 'open' : 'border-[#e6e9ef]'
+                        }`}
+                        aria-haspopup="true"
+                        aria-expanded={statusOpen}
+                      >
+                        <span
+                          style={statusOpen ? { color: '#19295c', fontWeight: 600 } : undefined}
+                          className="text-sm text-[#2b2b2b]"
+                        >
+                          {statusFilter}
+                        </span>
+                        <svg
+                          className={`w-4 h-4 transform transition-transform duration-200 ${statusOpen ? 'rotate-180' : ''}`}
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          style={statusOpen ? { color: '#19295c' } : { color: '#2b2b2b' }}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      {statusOpen && (
+                        <ul className="absolute z-50 mt-2 w-full bg-white border border-[#e6e9ef] rounded-lg shadow-lg max-h-56 overflow-auto py-1">
+                          {['All Statuses','Planning','In Progress','On Hold','Completed'].map(opt => (
+                            <li
+                              key={opt}
+                              onClick={() => { setStatusFilter(opt); setStatusOpen(false); }}
+                              role="option"
+                              aria-selected={opt === statusFilter}
+                              className={`dropdown-item px-4 py-2 cursor-pointer text-sm ${opt === statusFilter ? 'selected' : ''}`}
+                            >
+                              {opt}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+
+                    {/* Category dropdown */}
+                    <div className="w-full sm:w-64 relative">
+                      <button
+                        type="button"
+                        onClick={() => { setCategoryOpen(!categoryOpen); setStatusOpen(false); }}
+                        className={`w-full flex items-center justify-between px-4 py-2 border rounded-lg bg-white shadow-sm hover:shadow-md focus:outline-none transition-colors duration-150 ${
+                          categoryOpen ? 'open' : 'border-[#e6e9ef]'
+                        }`}
+                        aria-haspopup="true"
+                        aria-expanded={categoryOpen}
+                      >
+                        <span
+                          style={categoryOpen ? { color: '#19295c', fontWeight: 600 } : undefined}
+                          className="text-sm text-[#2b2b2b]"
+                        >
+                          {categoryFilter}
+                        </span>
+                        <svg
+                          className={`w-4 h-4 transform transition-transform duration-200 ${categoryOpen ? 'rotate-180' : ''}`}
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          style={categoryOpen ? { color: '#19295c' } : { color: '#2b2b2b' }}
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      {categoryOpen && (
+                        <ul className="absolute z-50 mt-2 w-full bg-white border border-[#e6e9ef] rounded-lg shadow-lg max-h-56 overflow-auto py-1">
+                          {['All Categories','Infrastructure','Parks & Recreation','Technology','Water Supply'].map(opt => (
+                            <li
+                              key={opt}
+                              onClick={() => { setCategoryFilter(opt); setCategoryOpen(false); }}
+                              role="option"
+                              aria-selected={opt === categoryFilter}
+                              className={`dropdown-item px-4 py-2 cursor-pointer text-sm ${opt === categoryFilter ? 'selected' : ''}`}
+                            >
+                              {opt}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* gradient animation styles */}
+                  <style jsx>{`
+                    .gradient-flow {
+                      left: -40%;
+                      background: linear-gradient(90deg, rgba(25,41,92,0.12), rgba(25,41,92,0.18), rgba(25,41,92,0.12));
+                      animation: flow 3.8s linear infinite;
+                    }
+                    .dropdown-item {
+                      transition: background-color .12s ease, color .12s ease;
+                      color: #2b2b2b; /* blackish grey when idle */
+                    }
+                    .dropdown-item:hover {
+                      background-color: rgba(25,41,92,0.06);
+                      color: #19295c;
+                    }
+                    .dropdown-item:active {
+                      background-color: #19295c;
+                      color: #fff;
+                    }
+                    .dropdown-item[aria-selected="true"], .dropdown-item.selected {
+                      background-color: #19295c;
+                      color: #fff;
+                      font-weight: 600;
+                    }
+                    /* open state for the main button (border + subtle ring) */
+                    .open {
+                      border-color: #19295c !important;
+                      box-shadow: 0 0 0 6px rgba(25,41,92,0.06);
+                    }
+                    @keyframes flow {
+                      0% { transform: translateX(-100%); }
+                      50% { transform: translateX(0%); }
+                      100% { transform: translateX(200%); }
+                    }
+                  `}</style>
+                </div>
+              </div>
+
+              {/* Scrollable results area: only this block scrolls while search stays sticky */}
+              <div className="overflow-auto max-h-[60vh]">
+                {/* Results count */}
+                <div className="mb-6">
+                  <p className="text-slate-600">Showing {filteredProjects.length} of {projectsData.length} projects</p>
                 </div>
 
-                <select 
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-4 py-3 border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option>All Statuses</option>
-                  <option>Planning</option>
-                  <option>In Progress</option>
-                  <option>On Hold</option>
-                  <option>Completed</option>
-                </select>
-
-                <select 
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="px-4 py-3 border border-slate-300 rounded-lg text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option>All Categories</option>
-                  <option>Infrastructure</option>
-                  <option>Parks & Recreation</option>
-                  <option>Technology</option>
-                  <option>Water Supply</option>
-                </select>
+                {/* Projects Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-6">
+                  {filteredProjects.map((project) => (
+                    <GovernmentProjectCard
+                      key={project.id}
+                      title={project.title}
+                      address={project.location}
+                      details={{
+                        description: project.description,
+                        budget: project.budget,
+                        startDate: project.startDate,
+                        endDate: project.endDate,
+                        contractor: project.department,
+                        status: project.status,
+                        fiscalYear: ''
+                      }}
+                      onCardClick={() => handleProjectClick(project)}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
-
-            {/* Results count */}
-            <div className="mb-6">
-              <p className="text-slate-600">Showing {filteredProjects.length} of {projectsData.length} projects</p>
-            </div>
-
-            {/* Projects Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProjects.map((project) => (
-                <div 
-                  key={project.id}
-                  className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => handleProjectClick(project)}
-                >
-                  {/* Project Image */}
-                  <div className="relative h-48">
-                    <img 
-                      src={project.image} 
-                      alt={project.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute top-3 left-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${project.statusColor}`}>
-                        {project.status}
-                      </span>
-                    </div>
-                    <div className="absolute top-3 right-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${project.priorityColor}`}>
-                        {project.priority}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Project Details */}
-                  <div className="p-6">
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${project.categoryColor}`}>
-                        {project.categoryIcon} {project.category}
-                      </span>
-                    </div>
-
-                    <h3 className="text-lg font-semibold text-slate-900 mb-2 line-clamp-2">
-                      {project.title}
-                    </h3>
-
-                    <p className="text-slate-600 text-sm mb-4 line-clamp-2">
-                      {project.description}
-                    </p>
-
-                    {/* Progress Bar */}
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-slate-700">Progress</span>
-                        <span className="text-sm font-bold text-slate-900">{project.progress}%</span>
-                      </div>
-                      <div className="w-full bg-slate-200 rounded-full h-2">
-                        <div 
-                          className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full"
-                          style={{width: `${project.progress}%`}}
-                        ></div>
-                      </div>
-                    </div>
-
-                    {/* Project Meta */}
-                    <div className="space-y-2 text-sm text-slate-600">
-                      <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        <span className="truncate">{project.location}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                          </svg>
-                          <span>{project.budget}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                          <span>{project.teamSize} members</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span>{project.startDate} - {project.endDate}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>
   );
 }
+
