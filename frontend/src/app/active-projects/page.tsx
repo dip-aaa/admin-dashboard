@@ -370,11 +370,47 @@ export default function ActiveProjects() {
     setShowMilestoneModal(true);
   };
 
+  const openEditMilestone = (m: Milestone) => {
+    setMilestoneForm({ ...m });
+    setShowMilestoneModal(true);
+  };
+
   const saveMilestone = () => {
     if (!selectedProject || !milestoneForm || !milestoneForm.id) return;
-    setProjectsState(prev => prev.map(p => p.id === selectedProject.id ? { ...p, milestones: [...p.milestones, milestoneForm as Milestone] } : p));
-    setSelectedProject(prev => prev ? { ...prev, milestones: [...prev.milestones, milestoneForm as Milestone] } : prev);
+
+    const formatDateShort = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    const sortMilestones = (list: Milestone[]) => {
+      const order: Record<Milestone['status'], number> = { completed: 0, current: 1, upcoming: 2 };
+      return list.slice().sort((a, b) => {
+        if (order[a.status] !== order[b.status]) return order[a.status] - order[b.status];
+        const da = Date.parse(a.completedDate || a.date || '') || 0;
+        const db = Date.parse(b.completedDate || b.date || '') || 0;
+        return da - db;
+      });
+    };
+
+    const exists = selectedProject.milestones.some(m => m.id === milestoneForm.id);
+    if (exists) {
+      const updatedMilestone: Milestone = { ...(milestoneForm as Milestone) };
+      if (updatedMilestone.status === 'completed' && !updatedMilestone.completedDate) {
+        updatedMilestone.completedDate = formatDateShort(new Date());
+      }
+
+      setProjectsState(prev => prev.map(p => p.id === selectedProject.id ? { ...p, milestones: sortMilestones(p.milestones.map(m => m.id === updatedMilestone.id ? updatedMilestone : m)) } : p));
+      setSelectedProject(prev => prev ? { ...prev, milestones: sortMilestones(prev.milestones.map(m => m.id === updatedMilestone.id ? updatedMilestone : m)) } : prev);
+    } else {
+      const newMilestone: Milestone = { ...(milestoneForm as Milestone) };
+      if (newMilestone.status === 'completed' && !newMilestone.completedDate) {
+        newMilestone.completedDate = formatDateShort(new Date());
+      }
+
+      setProjectsState(prev => prev.map(p => p.id === selectedProject.id ? { ...p, milestones: sortMilestones([...p.milestones, newMilestone]) } : p));
+      setSelectedProject(prev => prev ? { ...prev, milestones: sortMilestones([...(prev.milestones || []), newMilestone]) } : prev);
+    }
+
     setShowMilestoneModal(false);
+    setMilestoneForm({});
   };
 
   const finishProject = (project: Project) => {
@@ -537,9 +573,14 @@ export default function ActiveProjects() {
                           <div className="flex-1 pb-8">
                             <div className="flex items-center justify-between mb-1">
                               <h4 className="font-semibold text-slate-900">{milestone.title}</h4>
-                              <span className="text-sm text-slate-500">
-                                {milestone.status === 'completed' ? milestone.completedDate : milestone.date}
-                              </span>
+                              <div className="flex items-center gap-3">
+                                <span className="text-sm text-slate-500">
+                                  {milestone.status === 'completed' ? milestone.completedDate : milestone.date}
+                                </span>
+                                {isAdmin && (
+                                  <button onClick={() => openEditMilestone(milestone)} className="text-sm text-primary hover:underline">Edit</button>
+                                )}
+                              </div>
                             </div>
                             <p className="text-slate-600 text-sm">{milestone.description}</p>
                             {milestone.status === 'completed' && (
@@ -556,26 +597,7 @@ export default function ActiveProjects() {
                     </div>
                   </div>
 
-                  {/* Recent Updates */}
-                  <div className="bg-white rounded-2xl shadow-sm border border-app-muted p-6">
-                    <h3 className="text-lg font-semibold text-dark mb-4">Recent Updates</h3>
-                    <div className="space-y-4">
-                      {selectedProject.recentUpdates.map((update, index) => (
-                        <div key={index} className="flex gap-4 p-4 bg-slate-50 rounded-xl">
-                          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-white font-semibold text-sm">{update.avatar}</span>
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <span className="font-semibold text-slate-900">{update.author}</span>
-                              <span className="text-sm text-slate-500">{update.date}</span>
-                            </div>
-                            <p className="text-slate-700 leading-relaxed">{update.update}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Recent Updates removed per request */}
                 </div>
 
                 {/* Sidebar */}
@@ -672,18 +694,24 @@ export default function ActiveProjects() {
           {showEditModal && (
             <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
               <div className="bg-white rounded-xl w-full max-w-2xl p-6">
-                <h3 className="text-lg font-semibold mb-4">Edit Project</h3>
+                <h3 className="text-lg font-semibold mb-4 text-slate-900">Edit Project</h3>
                 <div className="space-y-3">
-                  <input value={editForm?.title || ''} onChange={e => setEditForm(prev => ({ ...prev, title: e.target.value }))} placeholder="Title" className="w-full border px-3 py-2 rounded" />
-                  <textarea value={editForm?.description || ''} onChange={e => setEditForm(prev => ({ ...prev, description: e.target.value }))} placeholder="Description" className="w-full border px-3 py-2 rounded" />
+                  <input value={editForm?.title || ''} onChange={e => setEditForm(prev => ({ ...prev, title: e.target.value }))} placeholder="Title" className="w-full border border-slate-200 bg-white text-black placeholder-slate-400 px-3 py-2 rounded" />
+                  <textarea value={editForm?.description || ''} onChange={e => setEditForm(prev => ({ ...prev, description: e.target.value }))} placeholder="Description" className="w-full border border-slate-200 bg-white text-black placeholder-slate-400 px-3 py-2 rounded resize-none" rows={4} />
                   <div className="grid grid-cols-2 gap-3">
-                    <input value={editForm?.budget || ''} onChange={e => setEditForm(prev => ({ ...prev, budget: e.target.value }))} placeholder="Budget" className="w-full border px-3 py-2 rounded" />
-                    <input value={editForm?.teamSize?.toString() || ''} onChange={e => setEditForm(prev => ({ ...prev, teamSize: Number(e.target.value) }))} placeholder="Team Size" className="w-full border px-3 py-2 rounded" />
+                    <div>
+                      <label className="text-sm font-medium text-[#19295c] mb-1 block">Budget</label>
+                      <input value={editForm?.budget || ''} onChange={e => setEditForm(prev => ({ ...prev, budget: e.target.value }))} placeholder="Budget" className="w-full border border-slate-200 bg-white text-black placeholder-slate-400 px-3 py-2 rounded" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-[#19295c] mb-1 block">Team Members</label>
+                      <input value={editForm?.teamSize?.toString() || ''} onChange={e => setEditForm(prev => ({ ...prev, teamSize: Number(e.target.value) }))} placeholder="Team Size" className="w-full border border-slate-200 bg-white text-black placeholder-slate-400 px-3 py-2 rounded" />
+                    </div>
                   </div>
                 </div>
                 <div className="mt-4 flex justify-end gap-3">
-                  <button onClick={() => setShowEditModal(false)} className="px-4 py-2 rounded border">Cancel</button>
-                  <button onClick={saveEditProject} className="px-4 py-2 bg-indigo-600 text-white rounded">Save</button>
+                  <button onClick={() => setShowEditModal(false)} className="px-4 py-2 rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">Cancel</button>
+                  <button onClick={saveEditProject} className="px-4 py-2 bg-[#19295c] hover:bg-[#0f1a3b] text-white rounded">Save</button>
                 </div>
               </div>
             </div>
@@ -691,15 +719,23 @@ export default function ActiveProjects() {
 
           {showProgressModal && (
             <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-              <div className="bg-white rounded-xl w-full max-w-md p-6">
-                <h3 className="text-lg font-semibold mb-4">Update Progress</h3>
+              <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-lg">
+                <h3 className="text-lg font-semibold mb-4 text-slate-900">Update Progress</h3>
                 <div className="space-y-3">
-                  <input type="range" min={0} max={100} value={progressValue} onChange={e => setProgressValue(Number(e.target.value))} className="w-full" />
-                  <div className="text-sm text-slate-600">{progressValue}%</div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={progressValue}
+                    onChange={e => setProgressValue(Number(e.target.value))}
+                    className="w-full accent-[#19295c]"
+                    style={{ accentColor: '#19295c' }}
+                  />
+                  <div className="text-sm font-medium text-[#19295c]">{progressValue}%</div>
                 </div>
                 <div className="mt-4 flex justify-end gap-3">
-                  <button onClick={() => setShowProgressModal(false)} className="px-4 py-2 rounded border">Cancel</button>
-                  <button onClick={saveProgress} className="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
+                  <button onClick={() => setShowProgressModal(false)} className="px-4 py-2 rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">Cancel</button>
+                  <button onClick={saveProgress} className="px-4 py-2 bg-[#19295c] hover:bg-[#0f1a3b] text-white rounded">Save</button>
                 </div>
               </div>
             </div>
@@ -707,16 +743,27 @@ export default function ActiveProjects() {
 
           {showMilestoneModal && (
             <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-              <div className="bg-white rounded-xl w-full max-w-md p-6">
-                <h3 className="text-lg font-semibold mb-4">Add Milestone</h3>
+              <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-lg">
+                <h3 className="text-lg font-semibold mb-4 text-slate-900">{selectedProject && milestoneForm?.id && selectedProject.milestones.some(m => m.id === milestoneForm.id) ? 'Edit Milestone' : 'Add Milestone'}</h3>
                 <div className="space-y-3">
-                  <input value={milestoneForm?.title || ''} onChange={e => setMilestoneForm(prev => ({ ...prev, title: e.target.value }))} placeholder="Title" className="w-full border px-3 py-2 rounded" />
-                  <textarea value={milestoneForm?.description || ''} onChange={e => setMilestoneForm(prev => ({ ...prev, description: e.target.value }))} placeholder="Description" className="w-full border px-3 py-2 rounded" />
-                  <input value={milestoneForm?.date || ''} onChange={e => setMilestoneForm(prev => ({ ...prev, date: e.target.value }))} placeholder="Date" className="w-full border px-3 py-2 rounded" />
+                  <input value={milestoneForm?.title || ''} onChange={e => setMilestoneForm(prev => ({ ...prev, title: e.target.value }))} placeholder="Title" className="w-full border border-slate-200 bg-white text-black placeholder-slate-400 px-3 py-2 rounded" />
+                  <textarea value={milestoneForm?.description || ''} onChange={e => setMilestoneForm(prev => ({ ...prev, description: e.target.value }))} placeholder="Description" className="w-full border border-slate-200 bg-white text-black placeholder-slate-400 px-3 py-2 rounded resize-none" rows={4} />
+                  <input value={milestoneForm?.date || ''} onChange={e => setMilestoneForm(prev => ({ ...prev, date: e.target.value }))} placeholder="Date" className="w-full border border-slate-200 bg-white text-black placeholder-slate-400 px-3 py-2 rounded" />
+                  <div>
+                    <label className="text-sm font-medium text-[#19295c]">Status</label>
+                    <select value={milestoneForm?.status || 'upcoming'} onChange={e => setMilestoneForm(prev => ({ ...prev, status: e.target.value as Milestone['status'] }))} className="w-full border border-slate-200 bg-white px-3 py-2 rounded mt-1 text-black">
+                      <option value="upcoming">Upcoming</option>
+                      <option value="current">Current</option>
+                      <option value="completed">Completed</option>
+                    </select>
+                  </div>
+                  {milestoneForm?.status === 'completed' && (
+                    <input value={milestoneForm?.completedDate || ''} onChange={e => setMilestoneForm(prev => ({ ...prev, completedDate: e.target.value }))} placeholder="Completed Date" className="w-full border border-slate-200 bg-white text-black placeholder-slate-400 px-3 py-2 rounded" />
+                  )}
                 </div>
                 <div className="mt-4 flex justify-end gap-3">
-                  <button onClick={() => setShowMilestoneModal(false)} className="px-4 py-2 rounded border">Cancel</button>
-                  <button onClick={saveMilestone} className="px-4 py-2 bg-green-600 text-white rounded">Add</button>
+                  <button onClick={() => { setShowMilestoneModal(false); setMilestoneForm({}); }} className="px-4 py-2 rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">Cancel</button>
+                  <button onClick={saveMilestone} className="px-4 py-2 bg-[#19295c] hover:bg-[#0f1a3b] text-white rounded">{selectedProject && milestoneForm?.id && selectedProject.milestones.some(m => m.id === milestoneForm.id) ? 'Save' : 'Add'}</button>
                 </div>
               </div>
             </div>
@@ -776,38 +823,33 @@ export default function ActiveProjects() {
                       <button
                         type="button"
                         onClick={() => { setStatusOpen(!statusOpen); setCategoryOpen(false); }}
-                        className={`w-full flex items-center justify-between px-4 py-2 border rounded-lg bg-white shadow-sm hover:shadow-md focus:outline-none transition-colors duration-150 ${
-                          statusOpen ? 'open' : 'border-[#e6e9ef]'
-                        }`}
+                        className={`w-full flex items-center justify-between px-4 py-2 border border-slate-200 rounded-lg bg-white text-slate-800 shadow-sm focus:outline-none transition-colors duration-150 ${statusOpen ? 'ring-2 ring-[#19295c]/20' : ''}`}
                         aria-haspopup="true"
                         aria-expanded={statusOpen}
+                        aria-label="Filter by status"
                       >
-                        <span
-                          style={statusOpen ? { color: '#19295c', fontWeight: 600 } : undefined}
-                          className="text-sm text-[#2b2b2b]"
-                        >
+                        <span className={`text-sm ${statusOpen ? 'text-[#19295c] font-semibold' : 'text-slate-700'}`}>
                           {statusFilter}
                         </span>
                         <svg
-                          className={`w-4 h-4 transform transition-transform duration-200 ${statusOpen ? 'rotate-180' : ''}`}
+                          className={`w-4 h-4 transform transition-transform duration-200 ${statusOpen ? 'rotate-180 text-[#19295c]' : 'text-slate-400'}`}
                           viewBox="0 0 24 24"
                           fill="none"
                           stroke="currentColor"
-                          style={statusOpen ? { color: '#19295c' } : { color: '#2b2b2b' }}
                         >
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       </button>
 
                       {statusOpen && (
-                        <ul className="absolute z-50 mt-2 w-full bg-white border border-[#e6e9ef] rounded-lg shadow-lg max-h-56 overflow-auto py-1">
+                        <ul className="absolute z-50 mt-2 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-56 overflow-auto py-1">
                           {['All Statuses','Planning','In Progress','On Hold','Completed'].map(opt => (
                             <li
                               key={opt}
                               onClick={() => { setStatusFilter(opt); setStatusOpen(false); }}
                               role="option"
                               aria-selected={opt === statusFilter}
-                              className={`dropdown-item px-4 py-2 cursor-pointer text-sm ${opt === statusFilter ? 'selected' : ''}`}
+                              className={`px-4 py-2 cursor-pointer text-sm transition-colors ${opt === statusFilter ? 'bg-[#19295c] text-white font-semibold' : 'text-slate-700 hover:bg-[#e6f3ff] hover:text-[#19295c]'}`}
                             >
                               {opt}
                             </li>
