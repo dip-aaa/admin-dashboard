@@ -52,10 +52,6 @@ export default function ActiveProjects() {
   const [statusOpen, setStatusOpen] = useState(false);
   const [categoryOpen, setCategoryOpen] = useState(false);
 
-  const handleLogout = () => {
-    router.push('/login');
-  };
-
   const projectsData: Project[] = [
     {
       id: 1,
@@ -305,7 +301,24 @@ export default function ActiveProjects() {
     }
   ];
 
-  const filteredProjects = projectsData.filter(project => {
+  // make projects editable in state so admin actions persist while app runs
+  const [projectsState, setProjectsState] = useState<Project[]>(projectsData);
+
+  // UI state for modals/forms
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState<Partial<Project>>({});
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const [progressValue, setProgressValue] = useState(0);
+  const [showMilestoneModal, setShowMilestoneModal] = useState(false);
+  const [milestoneForm, setMilestoneForm] = useState<Partial<Milestone>>({});
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  const handleLogout = () => {
+    router.push('/login');
+  };
+
+
+  const filteredProjects = projectsState.filter(project => {
     const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          project.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          project.category.toLowerCase().includes(searchTerm.toLowerCase());
@@ -316,18 +329,69 @@ export default function ActiveProjects() {
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
-  const handleProjectClick = (project: Project) => {
-    setSelectedProject(project);
-  };
+
 
   const handleBackToList = () => {
     setSelectedProject(null);
   };
 
+  // Ensure selectedProject references the item from projectsState (keeps updates in sync)
+  const handleProjectClick = (project: Project) => {
+    const p = projectsState.find(p => p.id === project.id) || project;
+    setSelectedProject(p);
+  };
+
+  const openEditProject = (project: Project) => {
+    setEditForm({ ...project });
+    setShowEditModal(true);
+  };
+
+  const saveEditProject = () => {
+    if (!editForm || !editForm.id) return;
+    setProjectsState(prev => prev.map(p => p.id === editForm.id ? { ...(p as Project), ...(editForm as Project) } : p));
+    if (selectedProject?.id === editForm.id) setSelectedProject(prev => prev ? { ...prev, ...(editForm as Project) } : prev);
+    setShowEditModal(false);
+  };
+
+  const openProgressModal = (project: Project) => {
+    setProgressValue(project.progress || 0);
+    setShowProgressModal(true);
+  };
+
+  const saveProgress = () => {
+    if (!selectedProject) return;
+    setProjectsState(prev => prev.map(p => p.id === selectedProject.id ? { ...p, progress: progressValue } : p));
+    setSelectedProject(prev => prev ? { ...prev, progress: progressValue } : prev);
+    setShowProgressModal(false);
+  };
+
+  const openAddMilestone = () => {
+    setMilestoneForm({ id: String(Date.now()), title: '', description: '', status: 'upcoming', date: '' });
+    setShowMilestoneModal(true);
+  };
+
+  const saveMilestone = () => {
+    if (!selectedProject || !milestoneForm || !milestoneForm.id) return;
+    setProjectsState(prev => prev.map(p => p.id === selectedProject.id ? { ...p, milestones: [...p.milestones, milestoneForm as Milestone] } : p));
+    setSelectedProject(prev => prev ? { ...prev, milestones: [...prev.milestones, milestoneForm as Milestone] } : prev);
+    setShowMilestoneModal(false);
+  };
+
+  const finishProject = (project: Project) => {
+    // mark complete and navigate to reports page for that project
+    setProjectsState(prev => prev.map(p => p.id === project.id ? { ...p, status: 'Completed', progress: 100 } : p));
+    setSelectedProject(prev => prev ? { ...prev, status: 'Completed', progress: 100 } : prev);
+    router.push(`/reports?projectId=${project.id}`);
+  };
+
+  const makeProposal = (project: Project) => {
+    router.push(`/proposals/new?projectId=${project.id}`);
+  };
+
   // If a project is selected, show the detailed view
   if (selectedProject) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-white">
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
         
         <div className="ml-64 flex flex-col min-h-screen">
@@ -340,7 +404,7 @@ export default function ActiveProjects() {
               {/* Back Button */}
               <button 
                 onClick={handleBackToList}
-                className="mb-6 flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
+                className="mb-6 flex items-center gap-2 text-primary hover:text-secondary font-medium"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -349,7 +413,7 @@ export default function ActiveProjects() {
               </button>
 
               {/* Project Header */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+              <div className="bg-white rounded-2xl shadow-sm border border-app-muted overflow-hidden mb-6">
                 <div className="relative h-48">
                   <img 
                     src={selectedProject.image} 
@@ -369,8 +433,17 @@ export default function ActiveProjects() {
                         {selectedProject.priority} Priority
                       </span>
                     </div>
-                    <h1 className="text-2xl font-bold text-white mb-2">{selectedProject.title}</h1>
-                    <p className="text-white/90">{selectedProject.description}</p>
+                    {isAdmin ? (
+                      <div className="space-y-2">
+                        <input value={editForm?.title ?? selectedProject.title} onChange={e => setEditForm(prev => ({ ...prev, title: e.target.value }))} className="w-full text-black text-2xl font-bold p-1 rounded" />
+                        <textarea value={editForm?.description ?? selectedProject.description} onChange={e => setEditForm(prev => ({ ...prev, description: e.target.value }))} className="w-full text-black p-2 rounded" />
+                      </div>
+                    ) : (
+                      <>
+                        <h1 className="text-2xl font-bold text-white mb-2">{selectedProject.title}</h1>
+                        <p className="text-white/90">{selectedProject.description}</p>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -379,47 +452,64 @@ export default function ActiveProjects() {
                 {/* Main Content */}
                 <div className="lg:col-span-2 space-y-6">
                   {/* Progress Overview */}
-                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                    <h3 className="text-lg font-semibold text-slate-900 mb-4">Progress Overview</h3>
+                  <div className="bg-white rounded-2xl shadow-sm border border-app-muted p-6">
+                    <h3 className="text-lg font-semibold text-dark mb-4">Progress Overview</h3>
                     <div className="mb-4">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-slate-700">Overall Progress</span>
-                        <span className="text-sm font-bold text-slate-900">{selectedProject.progress}%</span>
+                        <span className="text-sm font-medium text-dark">Overall Progress</span>
+                        <span className="text-sm font-bold text-dark">{selectedProject.progress}%</span>
                       </div>
-                      <div className="w-full bg-slate-200 rounded-full h-3">
-                        <div 
-                          className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500"
-                          style={{width: `${selectedProject.progress}%`}}
-                        ></div>
+                      <div className="w-full">
+                        {isAdmin ? (
+                          <div>
+                            <input type="range" min={0} max={100} value={editForm?.progress ?? selectedProject.progress} onChange={e => setEditForm(prev => ({ ...prev, progress: Number(e.target.value) }))} className="w-full" />
+                            <div className="text-sm text-dark mt-1">{editForm?.progress ?? selectedProject.progress}%</div>
+                          </div>
+                        ) : (
+                          <div className="w-full bg-slate-200 rounded-full h-3">
+                            <div 
+                              className="h-3 rounded-full transition-all duration-500"
+                              style={{width: `${selectedProject.progress}%`, background: 'linear-gradient(90deg, var(--secondary), var(--primary))'}}
+                            ></div>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    
+
                     {/* Project Stats */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-                      <div className="text-center p-4 bg-slate-50 rounded-lg">
-                        <div className="text-2xl font-bold text-blue-600">{selectedProject.budget}</div>
-                        <div className="text-sm text-slate-500">Budget</div>
+                      <div className="text-center p-4 bg-app-muted rounded-lg">
+                        {isAdmin ? (
+                          <input value={editForm?.budget ?? selectedProject.budget} onChange={e => setEditForm(prev => ({ ...prev, budget: e.target.value }))} className="text-center text-2xl font-bold text-primary text-black p-1 rounded w-full" />
+                        ) : (
+                          <div className="text-2xl font-bold text-primary">{selectedProject.budget}</div>
+                        )}
+                        <div className="text-sm text-dark">Budget</div>
                       </div>
-                      <div className="text-center p-4 bg-slate-50 rounded-lg">
-                        <div className="text-2xl font-bold text-green-600">{selectedProject.teamSize}</div>
-                        <div className="text-sm text-slate-500">Team Members</div>
+                      <div className="text-center p-4 bg-app-muted rounded-lg">
+                        {isAdmin ? (
+                          <input value={String(editForm?.teamSize ?? selectedProject.teamSize)} onChange={e => setEditForm(prev => ({ ...prev, teamSize: Number(e.target.value) }))} className="text-center text-2xl font-bold text-primary text-black p-1 rounded w-full" />
+                        ) : (
+                          <div className="text-2xl font-bold text-primary">{selectedProject.teamSize}</div>
+                        )}
+                        <div className="text-sm text-dark">Team Members</div>
                       </div>
-                      <div className="text-center p-4 bg-slate-50 rounded-lg">
-                        <div className="text-2xl font-bold text-purple-600">{selectedProject.milestones.length}</div>
-                        <div className="text-sm text-slate-500">Milestones</div>
+                      <div className="text-center p-4 bg-app-muted rounded-lg">
+                        <div className="text-2xl font-bold text-primary">{selectedProject.milestones.length}</div>
+                        <div className="text-sm text-dark">Milestones</div>
                       </div>
-                      <div className="text-center p-4 bg-slate-50 rounded-lg">
-                        <div className="text-2xl font-bold text-orange-600">
+                      <div className="text-center p-4 bg-app-muted rounded-lg">
+                        <div className="text-2xl font-bold text-primary">
                           {selectedProject.milestones.filter(m => m.status === 'completed').length}
                         </div>
-                        <div className="text-sm text-slate-500">Completed</div>
+                        <div className="text-sm text-dark">Completed</div>
                       </div>
                     </div>
                   </div>
 
                   {/* Timeline */}
-                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                    <h3 className="text-lg font-semibold text-slate-900 mb-6">Project Timeline</h3>
+                  <div className="bg-white rounded-2xl shadow-sm border border-app-muted p-6">
+                    <h3 className="text-lg font-semibold text-dark mb-6">Project Timeline</h3>
                     <div className="space-y-4">
                       {selectedProject.milestones.map((milestone, index) => (
                         <div key={milestone.id} className="flex gap-4">
@@ -467,8 +557,8 @@ export default function ActiveProjects() {
                   </div>
 
                   {/* Recent Updates */}
-                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                    <h3 className="text-lg font-semibold text-slate-900 mb-4">Recent Updates</h3>
+                  <div className="bg-white rounded-2xl shadow-sm border border-app-muted p-6">
+                    <h3 className="text-lg font-semibold text-dark mb-4">Recent Updates</h3>
                     <div className="space-y-4">
                       {selectedProject.recentUpdates.map((update, index) => (
                         <div key={index} className="flex gap-4 p-4 bg-slate-50 rounded-xl">
@@ -491,51 +581,84 @@ export default function ActiveProjects() {
                 {/* Sidebar */}
                 <div className="space-y-6">
                   {/* Project Details */}
-                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                    <h3 className="text-lg font-semibold text-slate-900 mb-4">Project Details</h3>
+                  <div className="bg-white rounded-2xl shadow-sm border border-app-muted p-6">
+                    <h3 className="text-lg font-semibold text-dark mb-4">Project Details</h3>
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 text-sm">
                         <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        <span className="text-slate-700">{selectedProject.location}</span>
+                        {isAdmin ? (
+                          <input value={editForm?.location ?? selectedProject.location} onChange={e => setEditForm(prev => ({ ...prev, location: e.target.value }))} className="text-black text-sm p-1 rounded w-full" />
+                        ) : (
+                          <span className="text-dark">{selectedProject.location}</span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
-                        <span className="text-slate-700">{selectedProject.department}</span>
+                        {isAdmin ? (
+                          <input value={editForm?.department ?? selectedProject.department} onChange={e => setEditForm(prev => ({ ...prev, department: e.target.value }))} className="text-black text-sm p-1 rounded w-full" />
+                        ) : (
+                          <span className="text-dark">{selectedProject.department}</span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
-                        <span className="text-slate-700">{selectedProject.startDate}</span>
+                        {isAdmin ? (
+                          <input value={editForm?.startDate ?? selectedProject.startDate} onChange={e => setEditForm(prev => ({ ...prev, startDate: e.target.value }))} className="text-black text-sm p-1 rounded w-full" />
+                        ) : (
+                          <span className="text-dark">{selectedProject.startDate}</span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
-                        <span className="text-slate-700">{selectedProject.endDate}</span>
+                        {isAdmin ? (
+                          <input value={editForm?.endDate ?? selectedProject.endDate} onChange={e => setEditForm(prev => ({ ...prev, endDate: e.target.value }))} className="text-black text-sm p-1 rounded w-full" />
+                        ) : (
+                          <span className="text-dark">{selectedProject.endDate}</span>
+                        )}
                       </div>
                     </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                    <h3 className="text-lg font-semibold text-slate-900 mb-4">Actions</h3>
+                  <div className="bg-white rounded-2xl shadow-sm border border-app-muted p-6">
+                    <h3 className="text-lg font-semibold text-dark mb-4">Actions</h3>
                     <div className="space-y-3">
-                      <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => setIsAdmin(prev => { const next = !prev; if (next) setEditForm({ ...(selectedProject || {}) }); else setEditForm({}); return next; })} className={`px-3 py-2 rounded ${isAdmin ? 'bg-primary text-white' : 'border border-app-muted text-dark'}`}>
+                          {isAdmin ? 'Exit Admin' : 'Admin Mode'}
+                        </button>
+                        {isAdmin && (
+                          <>
+                            <button onClick={saveEditProject} className="px-3 py-2 bg-primary text-white rounded">Save Changes</button>
+                            <button onClick={() => { setIsAdmin(false); setEditForm({}); }} className="px-3 py-2 border rounded">Cancel</button>
+                          </>
+                        )}
+                      </div>
+                      <button onClick={() => openEditProject(selectedProject)} className="w-full px-4 py-2 btn-secondary rounded-lg font-medium hover:opacity-95 transition-colors">
+                        Edit Project (Modal)
+                      </button>
+                      <button onClick={() => openProgressModal(selectedProject)} className="w-full px-4 py-2 btn-primary rounded-lg font-medium hover:opacity-95 transition-colors">
                         Update Progress
                       </button>
-                      <button className="w-full px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors">
+                      <button onClick={openAddMilestone} className="w-full px-4 py-2 btn-primary rounded-lg font-medium hover:opacity-95 transition-colors">
                         Add Milestone
                       </button>
-                      <button className="w-full px-4 py-2 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors">
-                        Generate Report
+                      <button onClick={() => finishProject(selectedProject)} className="w-full px-4 py-2 border border-app-muted text-dark rounded-lg font-medium hover:bg-app-muted transition-colors">
+                        Finish Project & Generate Report
                       </button>
-                      <button className="w-full px-4 py-2 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors">
+                      <button onClick={() => makeProposal(selectedProject)} className="w-full px-4 py-2 border border-app-muted text-dark rounded-lg font-medium hover:bg-app-muted transition-colors">
+                        Make Proposal
+                      </button>
+                      <button className="w-full px-4 py-2 border border-app-muted text-dark rounded-lg font-medium hover:bg-app-muted transition-colors">
                         View Documents
                       </button>
                     </div>
@@ -544,6 +667,60 @@ export default function ActiveProjects() {
               </div>
             </div>
           </div>
+
+          {/* Modals */}
+          {showEditModal && (
+            <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+              <div className="bg-white rounded-xl w-full max-w-2xl p-6">
+                <h3 className="text-lg font-semibold mb-4">Edit Project</h3>
+                <div className="space-y-3">
+                  <input value={editForm?.title || ''} onChange={e => setEditForm(prev => ({ ...prev, title: e.target.value }))} placeholder="Title" className="w-full border px-3 py-2 rounded" />
+                  <textarea value={editForm?.description || ''} onChange={e => setEditForm(prev => ({ ...prev, description: e.target.value }))} placeholder="Description" className="w-full border px-3 py-2 rounded" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <input value={editForm?.budget || ''} onChange={e => setEditForm(prev => ({ ...prev, budget: e.target.value }))} placeholder="Budget" className="w-full border px-3 py-2 rounded" />
+                    <input value={editForm?.teamSize?.toString() || ''} onChange={e => setEditForm(prev => ({ ...prev, teamSize: Number(e.target.value) }))} placeholder="Team Size" className="w-full border px-3 py-2 rounded" />
+                  </div>
+                </div>
+                <div className="mt-4 flex justify-end gap-3">
+                  <button onClick={() => setShowEditModal(false)} className="px-4 py-2 rounded border">Cancel</button>
+                  <button onClick={saveEditProject} className="px-4 py-2 bg-indigo-600 text-white rounded">Save</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showProgressModal && (
+            <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+              <div className="bg-white rounded-xl w-full max-w-md p-6">
+                <h3 className="text-lg font-semibold mb-4">Update Progress</h3>
+                <div className="space-y-3">
+                  <input type="range" min={0} max={100} value={progressValue} onChange={e => setProgressValue(Number(e.target.value))} className="w-full" />
+                  <div className="text-sm text-slate-600">{progressValue}%</div>
+                </div>
+                <div className="mt-4 flex justify-end gap-3">
+                  <button onClick={() => setShowProgressModal(false)} className="px-4 py-2 rounded border">Cancel</button>
+                  <button onClick={saveProgress} className="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showMilestoneModal && (
+            <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+              <div className="bg-white rounded-xl w-full max-w-md p-6">
+                <h3 className="text-lg font-semibold mb-4">Add Milestone</h3>
+                <div className="space-y-3">
+                  <input value={milestoneForm?.title || ''} onChange={e => setMilestoneForm(prev => ({ ...prev, title: e.target.value }))} placeholder="Title" className="w-full border px-3 py-2 rounded" />
+                  <textarea value={milestoneForm?.description || ''} onChange={e => setMilestoneForm(prev => ({ ...prev, description: e.target.value }))} placeholder="Description" className="w-full border px-3 py-2 rounded" />
+                  <input value={milestoneForm?.date || ''} onChange={e => setMilestoneForm(prev => ({ ...prev, date: e.target.value }))} placeholder="Date" className="w-full border px-3 py-2 rounded" />
+                </div>
+                <div className="mt-4 flex justify-end gap-3">
+                  <button onClick={() => setShowMilestoneModal(false)} className="px-4 py-2 rounded border">Cancel</button>
+                  <button onClick={saveMilestone} className="px-4 py-2 bg-green-600 text-white rounded">Add</button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -727,7 +904,7 @@ export default function ActiveProjects() {
               <div className="overflow-auto max-h-[60vh]">
                 {/* Results count */}
                 <div className="mb-6">
-                  <p className="text-slate-600">Showing {filteredProjects.length} of {projectsData.length} projects</p>
+                  <p className="text-slate-600">Showing {filteredProjects.length} of {projectsState.length} projects</p>
                 </div>
 
                 {/* Projects Grid */}

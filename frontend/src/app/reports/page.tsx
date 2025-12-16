@@ -1,9 +1,10 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import ReportCard from '@/components/ReportCard';
+import TwoSidedArrow from '@/components/TwoSidedArrow';
 
 interface CompletedProject {
   id: string;
@@ -356,11 +357,231 @@ export default function Reports() {
     setSelectedProject(null);
   };
 
-  const handleGeneratePDF = () => {
-    // Implement PDF generation logic
-    console.log('Generating PDF report for:', selectedProject?.title);
-    alert('PDF report generation would be implemented here');
+  const handleGeneratePDF = async () => {
+    if (!selectedProject) return;
+    try {
+      const { jsPDF } = await import('jspdf');
+      const pdf = new jsPDF('p', 'pt', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 40;
+      const lineHeight = 14;
+      let y = margin;
+
+      const addPageIfNeeded = (needed = lineHeight) => {
+        if (y + needed > pageHeight - margin) {
+          pdf.addPage();
+          y = margin;
+        }
+      };
+
+      const formatINR = (s: string) => {
+        try {
+          const digits = s.replace(/[^\d.-]/g, '');
+          const n = Number(digits);
+          if (isNaN(n)) return s;
+          // format as Rs 1,23,45,678 (no currency symbol glyph)
+          return 'Rs ' + new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n);
+        } catch (e) {
+          return s;
+        }
+      };
+
+      // Title (centered, bold)
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(18);
+      pdf.text(selectedProject.title, pageWidth / 2, y, { align: 'center' });
+      y += 26;
+      pdf.setLineWidth(0.8);
+      pdf.setDrawColor(200);
+      pdf.line(margin, y, pageWidth - margin, y);
+      y += 12;
+
+      // Description
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(11);
+      const descLines = pdf.splitTextToSize(selectedProject.description, pageWidth - margin * 2);
+      addPageIfNeeded(descLines.length * lineHeight);
+      pdf.text(descLines, margin, y);
+      y += descLines.length * lineHeight + 10;
+
+      // Project Summary as a bordered two-column table
+      pdf.setFontSize(13);
+      addPageIfNeeded(20);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Project Summary', margin, y);
+      y += 16;
+
+      const tableX = margin;
+      const tableW = pageWidth - margin * 2;
+      const colLeft = tableX + 8;
+      const colRightX = tableX + tableW - 8;
+      const headerH = 18;
+      const rowH = 16;
+
+      // header
+      pdf.setFillColor(245, 245, 245);
+      pdf.rect(tableX, y, tableW, headerH, 'F');
+      pdf.setDrawColor(200);
+      pdf.rect(tableX, y, tableW, headerH, 'S');
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(10);
+      pdf.text('Field', colLeft, y + 12);
+      const headerRight = 'Value';
+      pdf.text(headerRight, colRightX - pdf.getTextWidth(headerRight), y + 12);
+      y += headerH;
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+      const summaryRows: [string, string][] = [
+        ['Department', selectedProject.department],
+        ['Location', selectedProject.location],
+        ['Start Date', selectedProject.startDate],
+        ['Completed Date', selectedProject.completedDate],
+        ['Actual Budget', formatINR(selectedProject.actualBudget)],
+        ['Planned Budget', formatINR(selectedProject.plannedBudget)],
+        ['Beneficiaries', selectedProject.beneficiaries.toLocaleString()],
+        ['Satisfaction Score', `${selectedProject.satisfactionScore}%`]
+      ];
+
+      for (const [k, v] of summaryRows) {
+        addPageIfNeeded(rowH + 6);
+        // row separator
+        pdf.setDrawColor(220);
+        pdf.line(tableX, y, tableX + tableW, y);
+        // content
+        pdf.text(k, colLeft, y + 12 - 2);
+        const val = String(v);
+        const w = pdf.getTextWidth(val);
+        pdf.text(val, colRightX - w, y + 12 - 2);
+        y += rowH;
+      }
+      // bottom border
+      pdf.setDrawColor(200);
+      pdf.line(tableX, y, tableX + tableW, y);
+      y += 8;
+
+      const addSection = (title: string, items: string[]) => {
+        // ensure a little extra space before section title
+        y += 8;
+        addPageIfNeeded(lineHeight * 3);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(12);
+        pdf.text(title, margin, y);
+        y += 16;
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(10);
+        for (const item of items) {
+          addPageIfNeeded(lineHeight * 2);
+          const lines = pdf.splitTextToSize(item, pageWidth - margin * 2 - 20);
+          // bullet on first line
+          pdf.text('• ' + lines[0], margin + 6, y);
+          if (lines.length > 1) {
+            for (let i = 1; i < lines.length; i++) {
+              y += lineHeight;
+              addPageIfNeeded(0);
+              pdf.text(lines[i], margin + 16, y);
+            }
+          }
+          y += lineHeight + 4; // extra spacing between items
+        }
+        // clear separation after section
+        y += 10;
+      };
+
+      addSection('Objectives', selectedProject.objectives);
+      addSection('Achieved Outcomes', selectedProject.outcomes);
+      addSection('Challenges', selectedProject.challenges);
+      addSection('Recommendations', selectedProject.recommendations);
+
+      // Financial Breakdown as a bordered table for clarity
+      addPageIfNeeded(lineHeight * 4);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(12);
+      pdf.text('Financial Breakdown', margin, y);
+      y += 16;
+
+      // table layout
+      const tableX2 = margin;
+      const tableW2 = pageWidth - margin * 2;
+      const colLeft2 = tableX2 + 6;
+      const colRightX2 = tableX2 + tableW2 - 6;
+      const headerH2 = 18;
+      const rowH2 = 16;
+
+      // header box
+      pdf.setFillColor(245, 245, 245);
+      pdf.rect(tableX2, y, tableW2, headerH2, 'F');
+      pdf.setDrawColor(200);
+      pdf.rect(tableX2, y, tableW2, headerH2, 'S');
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(10);
+      pdf.text('Item', colLeft2, y + 12);
+      pdf.text('Amount (Rs)', colRightX2 - pdf.getTextWidth('Amount (Rs)'), y + 12);
+      y += headerH2;
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+      const fb = selectedProject.financialBreakdown;
+      const fbRows: [string, string][] = [
+        ['Materials', formatINR(fb.materials)],
+        ['Labor', formatINR(fb.labor)],
+        ['Equipment', formatINR(fb.equipment)],
+        ['Miscellaneous', formatINR(fb.miscellaneous)]
+      ];
+
+      for (const [k, v] of fbRows) {
+        addPageIfNeeded(rowH2 + 6);
+        // row border
+        pdf.setDrawColor(220);
+        pdf.line(tableX2, y, tableX2 + tableW2, y);
+        // content
+        pdf.text(k, colLeft2, y + 12 - 2);
+        const w = pdf.getTextWidth(v);
+        pdf.text(v, colRightX2 - w, y + 12 - 2);
+        y += rowH2;
+      }
+
+      // bottom border
+      pdf.setDrawColor(200);
+      pdf.line(tableX2, y, tableX2 + tableW2, y);
+
+      // Total row
+      addPageIfNeeded(rowH2 + 8);
+      pdf.setFont('helvetica', 'bold');
+      const total = formatINR(selectedProject.actualBudget);
+      pdf.text('Total Actual Cost', colLeft2, y + 12 - 2);
+      const tw = pdf.getTextWidth(total);
+      pdf.text(total, colRightX2 - tw, y + 12 - 2);
+      y += rowH2 + 6;
+      pdf.setFont('helvetica', 'normal');
+
+      // Project Team
+      // add some vertical spacing before the title
+      y += 15;
+      addPageIfNeeded(lineHeight * 2);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(12);
+      pdf.text('Project Team', margin, y);
+      y += 18;
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+      for (const m of selectedProject.teamMembers) {
+        addPageIfNeeded(lineHeight);
+        const lines = pdf.splitTextToSize(m, pageWidth - margin * 2);
+        pdf.text(lines, margin, y);
+        y += lines.length * lineHeight;
+      }
+
+      const filename = `${selectedProject.title.replace(/\s+/g, '_')}_report.pdf`;
+      pdf.save(filename);
+    } catch (err) {
+      console.error('PDF generation failed', err);
+      alert('PDF generation failed.');
+    }
   };
+
+  const printRef = useRef<HTMLDivElement | null>(null);
 
   const handleExportData = () => {
     // Implement data export logic
@@ -371,7 +592,7 @@ export default function Reports() {
   // Project Detail Report View
   if (selectedProject) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-[#f6f9ff]">
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
         
         <div className="ml-64 flex flex-col min-h-screen">
@@ -381,6 +602,104 @@ export default function Reports() {
           
           <div className="flex-1 p-8">
             <div className="max-w-7xl mx-auto">
+              {/* Hidden printable minimal report used for PDF generation */}
+              <div
+                ref={printRef}
+                aria-hidden
+                style={{ position: 'absolute', left: -9999, top: 0, width: 800, background: '#ffffff', padding: 24, color: '#111827' }}
+              >
+                <div style={{ fontFamily: 'Inter, Arial, sans-serif', color: '#111827' }}>
+                  <h1 style={{ fontSize: 24, marginBottom: 8 }}>{selectedProject.title}</h1>
+                  <p style={{ marginBottom: 12 }}>{selectedProject.description}</p>
+
+                  <h2 style={{ fontSize: 16, marginBottom: 8 }}>Project Summary</h2>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12 }}>
+                    <tbody>
+                      <tr>
+                        <td style={{ padding: 6, width: '33%' }}><strong>Department:</strong></td>
+                        <td style={{ padding: 6 }}>{selectedProject.department}</td>
+                        <td style={{ padding: 6 }}><strong>Location:</strong></td>
+                        <td style={{ padding: 6 }}>{selectedProject.location}</td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: 6 }}><strong>Start Date:</strong></td>
+                        <td style={{ padding: 6 }}>{selectedProject.startDate}</td>
+                        <td style={{ padding: 6 }}><strong>Completed Date:</strong></td>
+                        <td style={{ padding: 6 }}>{selectedProject.completedDate}</td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: 6 }}><strong>Actual Budget:</strong></td>
+                        <td style={{ padding: 6 }}>{selectedProject.actualBudget}</td>
+                        <td style={{ padding: 6 }}><strong>Planned Budget:</strong></td>
+                        <td style={{ padding: 6 }}>{selectedProject.plannedBudget}</td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: 6 }}><strong>Beneficiaries:</strong></td>
+                        <td style={{ padding: 6 }}>{selectedProject.beneficiaries.toLocaleString()}</td>
+                        <td style={{ padding: 6 }}><strong>Satisfaction Score:</strong></td>
+                        <td style={{ padding: 6 }}>{selectedProject.satisfactionScore}%</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <h3 style={{ fontSize: 14, marginBottom: 6 }}>Objectives</h3>
+                  <ul>
+                    {selectedProject.objectives.map((o, i) => (
+                      <li key={i} style={{ marginBottom: 4 }}>{o}</li>
+                    ))}
+                  </ul>
+
+                  <h3 style={{ fontSize: 14, marginTop: 12, marginBottom: 6 }}>Achieved Outcomes</h3>
+                  <ul>
+                    {selectedProject.outcomes.map((o, i) => (
+                      <li key={i} style={{ marginBottom: 4 }}>{o}</li>
+                    ))}
+                  </ul>
+
+                  <h3 style={{ fontSize: 14, marginTop: 12, marginBottom: 6 }}>Challenges</h3>
+                  <ul>
+                    {selectedProject.challenges.map((c, i) => (
+                      <li key={i} style={{ marginBottom: 4 }}>{c}</li>
+                    ))}
+                  </ul>
+
+                  <h3 style={{ fontSize: 14, marginTop: 12, marginBottom: 6 }}>Recommendations</h3>
+                  <ul>
+                    {selectedProject.recommendations.map((r, i) => (
+                      <li key={i} style={{ marginBottom: 4 }}>{r}</li>
+                    ))}
+                  </ul>
+
+                  <h3 style={{ fontSize: 14, marginTop: 12, marginBottom: 6 }}>Financial Breakdown</h3>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <tbody>
+                      <tr>
+                        <td style={{ padding: 6 }}>Materials</td>
+                        <td style={{ padding: 6 }}>{selectedProject.financialBreakdown.materials}</td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: 6 }}>Labor</td>
+                        <td style={{ padding: 6 }}>{selectedProject.financialBreakdown.labor}</td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: 6 }}>Equipment</td>
+                        <td style={{ padding: 6 }}>{selectedProject.financialBreakdown.equipment}</td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: 6 }}>Miscellaneous</td>
+                        <td style={{ padding: 6 }}>{selectedProject.financialBreakdown.miscellaneous}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <h3 style={{ fontSize: 14, marginTop: 12, marginBottom: 6 }}>Project Team</h3>
+                  <ul>
+                    {selectedProject.teamMembers.map((m, i) => (
+                      <li key={i} style={{ marginBottom: 4 }}>{m}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
               {/* Header */}
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
@@ -388,19 +707,19 @@ export default function Reports() {
                     onClick={handleBackToReports}
                     className="p-2 hover:bg-slate-200 rounded-lg transition-colors"
                   >
-                    <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-[#475569]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
                   </button>
                   <div>
-                    <h1 className="text-2xl font-bold text-slate-900">Project Report</h1>
-                    <p className="text-slate-500">Detailed completion report and analysis</p>
+                    <h1 className="text-2xl font-bold text-[#19295c]">Project Report</h1>
+                    <p className="text-[#6B7386]">Detailed completion report and analysis</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={handleExportData}
-                    className="flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 border border-[#cfe0ff] rounded-lg text-[#475569] hover:bg-[#eef6ff] transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -409,7 +728,7 @@ export default function Reports() {
                   </button>
                   <button 
                     onClick={handleGeneratePDF}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-[#19295c] text-white rounded-lg hover:bg-[#0f1a3b] transition-colors"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -420,43 +739,15 @@ export default function Reports() {
               </div>
 
               {/* Project Overview */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 mb-6">
-                <div className="flex items-start justify-between mb-6">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedProject.categoryColor}`}>
-                        {selectedProject.categoryIcon} {selectedProject.category}
-                      </span>
-                      <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                        Completed
-                      </span>
+              <div className="bg-transparent rounded-3xl shadow-sm border border-transparent p-8 mb-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex-1 text-center">
+                      <h2 className="text-3xl font-bold text-[#19295c] mb-3">{selectedProject.title}</h2>
+                      <p className="text-[#475679] text-lg leading-relaxed">{selectedProject.description}</p>
                     </div>
-                    <h2 className="text-3xl font-bold text-slate-900 mb-3">{selectedProject.title}</h2>
-                    <p className="text-slate-600 text-lg leading-relaxed">{selectedProject.description}</p>
-                  </div>
                   <div className="text-right">
                     <div className="text-3xl font-bold text-green-600 mb-1">{selectedProject.satisfactionScore}%</div>
                     <div className="text-sm text-slate-500">Satisfaction Score</div>
-                  </div>
-                </div>
-
-                {/* Project Metrics */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  <div className="text-center p-4 bg-slate-50 rounded-lg">
-                    <div className="text-xl font-bold text-slate-900">{selectedProject.completedDate}</div>
-                    <div className="text-sm text-slate-500">Completion Date</div>
-                  </div>
-                  <div className="text-center p-4 bg-slate-50 rounded-lg">
-                    <div className="text-xl font-bold text-slate-900">{selectedProject.actualBudget}</div>
-                    <div className="text-sm text-slate-500">Final Budget</div>
-                  </div>
-                  <div className="text-center p-4 bg-slate-50 rounded-lg">
-                    <div className="text-xl font-bold text-slate-900">{selectedProject.actualDuration}</div>
-                    <div className="text-sm text-slate-500">Duration</div>
-                  </div>
-                  <div className="text-center p-4 bg-slate-50 rounded-lg">
-                    <div className="text-xl font-bold text-slate-900">{selectedProject.beneficiaries.toLocaleString()}</div>
-                    <div className="text-sm text-slate-500">Beneficiaries</div>
                   </div>
                 </div>
               </div>
@@ -464,61 +755,69 @@ export default function Reports() {
               {/* Key Performance Indicators */}
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 mb-6">
                 <h3 className="text-xl font-bold text-slate-900 mb-6">Key Performance Indicators</h3>
+                <div className="mb-6 flex items-center justify-center">
+                  <TwoSidedArrow
+                    items={[
+                      { label: 'Completion Date', value: selectedProject.completedDate, side: 'right' },
+                      { label: 'Final Budget', value: selectedProject.actualBudget, side: 'left' },
+                      { label: 'Duration', value: selectedProject.actualDuration, side: 'right' },
+                      { label: 'Beneficiaries', value: selectedProject.beneficiaries.toLocaleString(), side: 'left' }
+                    ]}
+                  />
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                   <div className="text-center">
-                    <div className={`w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center ${
-                      selectedProject.kpis.onTime ? 'bg-green-100' : 'bg-red-100'
-                    }`}>
+                    <div className="w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center bg-blue-100">
                       {selectedProject.kpis.onTime ? (
-                        <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-8 h-8 text-[#19295c]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                       ) : (
-                        <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-8 h-8 text-[#19295c]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       )}
                     </div>
                     <div className="font-semibold text-slate-900">On Time Delivery</div>
-                    <div className={`text-sm ${selectedProject.kpis.onTime ? 'text-green-600' : 'text-red-600'}`}>
+                    <div className={`text-sm text-blue-600`}>
                       {selectedProject.kpis.onTime ? 'Achieved' : 'Delayed'}
                     </div>
                   </div>
 
                   <div className="text-center">
                     <div className={`w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center ${
-                      selectedProject.kpis.onBudget ? 'bg-green-100' : 'bg-red-100'
+                      selectedProject.kpis.onBudget ? 'bg-blue-100' : 'bg-blue-100'
                     }`}>
                       {selectedProject.kpis.onBudget ? (
-                        <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-8 h-8 text-[#19295c]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                       ) : (
-                        <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-8 h-8 text-[#19295c]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       )}
                     </div>
                     <div className="font-semibold text-slate-900">Budget Adherence</div>
-                    <div className={`text-sm ${selectedProject.kpis.onBudget ? 'text-green-600' : 'text-red-600'}`}>
+                    <div className={`text-sm text-blue-600`}>
                       {selectedProject.kpis.onBudget ? 'Under Budget' : 'Over Budget'}
                     </div>
                   </div>
 
                   <div className="text-center">
                     <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-blue-100 flex items-center justify-center">
-                      <div className="text-xl font-bold text-blue-600">{selectedProject.kpis.qualityScore}</div>
+                      <div className="text-xl font-bold text-[#19295c]">{selectedProject.kpis.qualityScore}</div>
                     </div>
                     <div className="font-semibold text-slate-900">Quality Score</div>
                     <div className="text-sm text-blue-600">Out of 100</div>
                   </div>
 
                   <div className="text-center">
-                    <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-purple-100 flex items-center justify-center">
-                      <div className="text-xl font-bold text-purple-600">{selectedProject.kpis.stakeholderSatisfaction}%</div>
+                    <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-blue-100 flex items-center justify-center">
+                      <div className="text-xl font-bold text-[#19295c]">{selectedProject.kpis.stakeholderSatisfaction}%</div>
                     </div>
                     <div className="font-semibold text-slate-900">Stakeholder Satisfaction</div>
-                    <div className="text-sm text-purple-600">Survey Result</div>
+                    <div className="text-sm text-blue-600">Survey Result</div>
                   </div>
                 </div>
               </div>
@@ -604,7 +903,7 @@ export default function Reports() {
                   <ul className="space-y-3">
                     {selectedProject.outcomes.map((outcome, index) => (
                       <li key={index} className="flex items-start gap-3">
-                        <svg className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                         <span className="text-slate-700">{outcome}</span>
@@ -669,7 +968,7 @@ export default function Reports() {
 
   // Main Reports List View
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#f6f9ff]">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       
       <div className="ml-64 flex flex-col min-h-screen">
