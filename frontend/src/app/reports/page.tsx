@@ -52,6 +52,9 @@ export default function Reports() {
   const [searchTerm, setSearchTerm] = useState('');
   const [periodOpen, setPeriodOpen] = useState(false);
   const [deptOpen, setDeptOpen] = useState(false);
+  const [generatedReports, setGeneratedReports] = useState<CompletedProject[]>([]);
+  const [removedReportIds, setRemovedReportIds] = useState<string[]>([]);
+  const [pendingDeleteReportId, setPendingDeleteReportId] = useState<string | null>(null);
 
   const handleLogout = () => {
     router.push('/login');
@@ -322,7 +325,9 @@ export default function Reports() {
     }
   ];
 
-  const filteredProjects = completedProjects.filter(project => {
+  const allProjects = [...generatedReports, ...completedProjects].filter(p => !removedReportIds.includes(p.id));
+
+  const filteredProjects = allProjects.filter(project => {
     const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          project.department.toLowerCase().includes(searchTerm.toLowerCase());
@@ -353,9 +358,38 @@ export default function Reports() {
     setSelectedProject(project);
   };
 
+  const deleteReport = (id: string) => {
+    setRemovedReportIds(prev => prev.includes(id) ? prev : [...prev, id]);
+    try {
+      const key = 'generatedReports';
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw) as CompletedProject[];
+        const next = parsed.filter(p => p.id !== id);
+        localStorage.setItem(key, JSON.stringify(next));
+        setGeneratedReports(next);
+      }
+    } catch (e) {
+      console.error('Failed to remove generated report', e);
+    }
+  };
+
   const handleBackToReports = () => {
     setSelectedProject(null);
   };
+
+  React.useEffect(() => {
+    try {
+      const key = 'generatedReports';
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw) as CompletedProject[];
+        setGeneratedReports(parsed);
+      }
+    } catch (e) {
+      console.error('Failed to load generated reports', e);
+    }
+  }, []);
 
   const handleGeneratePDF = async () => {
     if (!selectedProject) return;
@@ -979,7 +1013,7 @@ export default function Reports() {
         <div className="flex-1 p-8">
           <div className="max-w-7xl mx-auto">
             {/* Sticky search/filter region (matches Active Projects) */}
-            <div className="sticky top-20 z-30 bg-slate-50 py-4 mb-6">
+            <div className="sticky z-30 bg-slate-50 py-4 mb-6" style={{ top: 'var(--topbar-height)' }}>
               <div className="max-w-3xl mx-auto">
                 <div className="relative">
                   <svg className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1091,7 +1125,8 @@ export default function Reports() {
             </div>
 
             {/* Reports Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-transparent rounded-2xl shadow-sm border border-slate-200 p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div className="p-0 bg-transparent shadow-none border-0">
                 <div className="flex items-center gap-4">
                   <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-100/40 to-blue-200/20 backdrop-blur-sm border-[3px] border-blue-300/60 flex items-center justify-center bubble-float">
@@ -1126,27 +1161,42 @@ export default function Reports() {
               </div>
             </div>
 
-            {/* Results count */}
-            <div className="mb-6">
-              <p className="text-slate-600">Showing {filteredProjects.length} of {completedProjects.length} completed projects</p>
-            </div>
+              {/* Results count */}
+              <div className="mb-6">
+                <p className="text-slate-600">Showing {filteredProjects.length} of {completedProjects.length} completed projects</p>
+              </div>
 
-            {/* Reports List - use ReportCard component */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10 auto-rows-fr items-stretch">
-              {filteredProjects.map((project) => (
-                <ReportCard
-                  key={project.id}
-                  id={project.id}
-                  title={project.title}
-                  department={project.department}
-                  completedDate={project.completedDate}
-                  satisfactionScore={project.satisfactionScore}
-                  category={project.category}
-                  categoryColor={project.categoryColor}
-                  categoryIcon={project.categoryIcon}
-                  onClick={() => handleProjectClick(project)}
-                />
-              ))}
+              {/* Reports List - use ReportCard component */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-10 auto-rows-fr items-stretch">
+                {filteredProjects.map((project) => (
+                  <ReportCard
+                    key={project.id}
+                    id={project.id}
+                    title={project.title}
+                    department={project.department}
+                    completedDate={project.completedDate}
+                    satisfactionScore={project.satisfactionScore}
+                    category={project.category}
+                    categoryColor={project.categoryColor}
+                    categoryIcon={project.categoryIcon}
+                    onClick={() => handleProjectClick(project)}
+                    onRequestDelete={() => setPendingDeleteReportId(project.id)}
+                  />
+                ))}
+              </div>
+              {/* Delete confirmation modal for reports */}
+              {pendingDeleteReportId && (
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+                  <div className="bg-white rounded-xl w-full max-w-sm p-6">
+                    <h3 className="text-lg font-semibold mb-4 text-slate-900">Confirm Delete</h3>
+                    <p className="text-sm text-slate-700">Do you want to delete this report? This action cannot be undone.</p>
+                    <div className="mt-4 flex justify-end gap-3">
+                      <button onClick={() => setPendingDeleteReportId(null)} className="px-4 py-2 rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">Cancel</button>
+                      <button onClick={() => { deleteReport(pendingDeleteReportId); setPendingDeleteReportId(null); }} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded">Delete</button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

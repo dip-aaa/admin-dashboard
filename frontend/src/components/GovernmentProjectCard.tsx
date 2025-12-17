@@ -15,9 +15,11 @@ interface ProjectCardProps {
     projectCode?: string;
   };
   onCardClick?: () => void;
+  onDelete?: () => void;
+  onRequestDelete?: () => void;
 }
 
-export const GovernmentProjectCard = ({ title, address, details, onCardClick }: ProjectCardProps) => {
+export const GovernmentProjectCard = ({ title, address, details, onCardClick, onDelete, onRequestDelete }: ProjectCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleCardClick = () => {
@@ -170,6 +172,22 @@ export const GovernmentProjectCard = ({ title, address, details, onCardClick }: 
             </div>
           </div>
         </div>
+
+        {/* Delete (dustbin) button - bottom-right */}
+        {(onDelete || onRequestDelete) && (
+          <div className="absolute bottom-3 right-3 z-40">
+            <button
+              onClick={(e) => { e.stopPropagation(); if (onRequestDelete) onRequestDelete(); else if (onDelete) onDelete(); }}
+              title="Delete project"
+              aria-label="Delete project"
+              className="w-8 h-8 text-red-700 flex items-center justify-center transition-opacity"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden>
+                <path d="M3 6h18v2H3V6zm2 3h14l-1 11H6L5 9zm3-6h6l1 1H7l1-1z" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* Paper texture overlay */}
         <div 

@@ -33,6 +33,9 @@ export default function CitizenProposals() {
   // attachments & UI state (store Attachment objects with dataUrl)
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB per file
+  const MAX_TOTAL_SIZE = 8 * 1024 * 1024; // 8 MB total for all attachments
+  const MAX_COUNT = 8;
   const [savingDraft, setSavingDraft] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -79,7 +82,35 @@ export default function CitizenProposals() {
     const files = e.target.files;
     if (!files) return;
     const arr = Array.from(files);
-    const mapped: Attachment[] = await Promise.all(arr.map(async (f) => ({
+
+    // validate sizes and counts before reading
+    const existingTotal = attachments.reduce((s, a) => s + (a.size || 0), 0);
+    const existingCount = attachments.length;
+
+    const acceptable: File[] = [];
+    for (const f of arr) {
+      if (f.size > MAX_FILE_SIZE) {
+        setToast(`File ${f.name} is too large (max ${Math.round(MAX_FILE_SIZE/1024/1024)}MB)`);
+        continue;
+      }
+      if (existingCount + acceptable.length >= MAX_COUNT) {
+        setToast(`Maximum ${MAX_COUNT} attachments allowed`);
+        break;
+      }
+      const projectedTotal = existingTotal + acceptable.reduce((s, x) => s + x.size, 0) + f.size;
+      if (projectedTotal > MAX_TOTAL_SIZE) {
+        setToast('Adding these files would exceed total attachments size limit');
+        break;
+      }
+      acceptable.push(f);
+    }
+
+    if (acceptable.length === 0) {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    const mapped: Attachment[] = await Promise.all(acceptable.map(async (f) => ({
       name: f.name,
       type: f.type,
       size: f.size,
@@ -87,7 +118,50 @@ export default function CitizenProposals() {
       file: f
     })));
     setAttachments(prev => [...prev, ...mapped]);
-    e.currentTarget.value = '';
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+  
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    const files = e.dataTransfer?.files;
+    if (!files || files.length === 0) return;
+    const arr = Array.from(files);
+
+    const existingTotal = attachments.reduce((s, a) => s + (a.size || 0), 0);
+    const existingCount = attachments.length;
+
+    const acceptable: File[] = [];
+    for (const f of arr) {
+      if (f.size > MAX_FILE_SIZE) {
+        setToast(`File ${f.name} is too large (max ${Math.round(MAX_FILE_SIZE/1024/1024)}MB)`);
+        continue;
+      }
+      if (existingCount + acceptable.length >= MAX_COUNT) {
+        setToast(`Maximum ${MAX_COUNT} attachments allowed`);
+        break;
+      }
+      const projectedTotal = existingTotal + acceptable.reduce((s, x) => s + x.size, 0) + f.size;
+      if (projectedTotal > MAX_TOTAL_SIZE) {
+        setToast('Adding these files would exceed total attachments size limit');
+        break;
+      }
+      acceptable.push(f);
+    }
+
+    if (acceptable.length === 0) return;
+
+    const mapped: Attachment[] = await Promise.all(acceptable.map(async (f) => ({
+      name: f.name,
+      type: f.type,
+      size: f.size,
+      dataUrl: await fileToDataUrl(f),
+      file: f
+    })));
+    setAttachments(prev => [...prev, ...mapped]);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
   };
   const removeAttachment = (idx: number) => setAttachments(prev => prev.filter((_, i) => i !== idx));
 
@@ -341,8 +415,10 @@ export default function CitizenProposals() {
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                   <label className="block text-sm font-semibold text-slate-900 mb-3">Attachments</label>
                   <div
-                    className="border-2 border-dashed border-slate-300 rounded-lg p-4 text-center hover:border-blue-200 transition-colors cursor-pointer"
+                    className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-blue-200 transition-colors cursor-pointer"
                     onClick={handleAttachClick}
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
                     role="button"
                     aria-label="Add attachments"
                   >
@@ -504,7 +580,7 @@ export default function CitizenProposals() {
 
           {/* Drafts Modal (shows all saved drafts with edit/load/delete) */}
           {showDraftModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+            <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-[#2D3F7B]/20">
               <div className="bg-white rounded-xl shadow-lg max-w-3xl w-full p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-slate-900">Saved Drafts</h3>

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import Topbar from '@/components/Topbar';
 import GovernmentProjectCard from '@/components/GovernmentProjectCard';
+import ReportModal from './reportmodal';
 
 interface Milestone {
   id: string;
@@ -312,6 +313,8 @@ export default function ActiveProjects() {
   const [showMilestoneModal, setShowMilestoneModal] = useState(false);
   const [milestoneForm, setMilestoneForm] = useState<Partial<Milestone>>({});
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [pendingDeleteProject, setPendingDeleteProject] = useState<Project | null>(null);
 
   const handleLogout = () => {
     router.push('/login');
@@ -414,14 +417,15 @@ export default function ActiveProjects() {
   };
 
   const finishProject = (project: Project) => {
-    // mark complete and navigate to reports page for that project
+    // mark complete and open the generate-report modal
     setProjectsState(prev => prev.map(p => p.id === project.id ? { ...p, status: 'Completed', progress: 100 } : p));
     setSelectedProject(prev => prev ? { ...prev, status: 'Completed', progress: 100 } : prev);
-    router.push(`/reports?projectId=${project.id}`);
+    setShowReportModal(true);
   };
 
   const makeProposal = (project: Project) => {
-    router.push(`/proposals/new?projectId=${project.id}`);
+    // Route to the existing citizen proposals page and include projectId
+    router.push(`/citizen-proposals?projectId=${project.id}`);
   };
 
   // If a project is selected, show the detailed view
@@ -654,17 +658,7 @@ export default function ActiveProjects() {
                   <div className="bg-white rounded-2xl shadow-sm border border-app-muted p-6">
                     <h3 className="text-lg font-semibold text-dark mb-4">Actions</h3>
                     <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <button onClick={() => setIsAdmin(prev => { const next = !prev; if (next) setEditForm({ ...(selectedProject || {}) }); else setEditForm({}); return next; })} className={`px-3 py-2 rounded ${isAdmin ? 'bg-primary text-white' : 'border border-app-muted text-dark'}`}>
-                          {isAdmin ? 'Exit Admin' : 'Admin Mode'}
-                        </button>
-                        {isAdmin && (
-                          <>
-                            <button onClick={saveEditProject} className="px-3 py-2 bg-primary text-white rounded">Save Changes</button>
-                            <button onClick={() => { setIsAdmin(false); setEditForm({}); }} className="px-3 py-2 border rounded">Cancel</button>
-                          </>
-                        )}
-                      </div>
+                      {/* Admin Mode removed per design — admin UI remains disabled */}
                       <button onClick={() => openEditProject(selectedProject)} className="w-full px-4 py-2 btn-secondary rounded-lg font-medium hover:opacity-95 transition-colors">
                         Edit Project (Modal)
                       </button>
@@ -680,9 +674,7 @@ export default function ActiveProjects() {
                       <button onClick={() => makeProposal(selectedProject)} className="w-full px-4 py-2 border border-app-muted text-dark rounded-lg font-medium hover:bg-app-muted transition-colors">
                         Make Proposal
                       </button>
-                      <button className="w-full px-4 py-2 border border-app-muted text-dark rounded-lg font-medium hover:bg-app-muted transition-colors">
-                        View Documents
-                      </button>
+                      {/* View Documents button removed per design */}
                     </div>
                   </div>
                 </div>
@@ -768,6 +760,82 @@ export default function ActiveProjects() {
               </div>
             </div>
           )}
+          {pendingDeleteProject && (
+            <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+              <div className="bg-white rounded-xl w-full max-w-sm p-6">
+                <h3 className="text-lg font-semibold mb-4 text-slate-900">Confirm Delete</h3>
+                <p className="text-sm text-slate-700">Do you want to delete this project? This action cannot be undone.</p>
+                <div className="mt-4 flex justify-end gap-3">
+                  <button onClick={() => setPendingDeleteProject(null)} className="px-4 py-2 rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">Cancel</button>
+                  <button onClick={() => {
+                    if (!pendingDeleteProject) return;
+                    setProjectsState(prev => prev.filter(p => p.id !== pendingDeleteProject.id));
+                    if (selectedProject?.id === pendingDeleteProject.id) setSelectedProject(null);
+                    setPendingDeleteProject(null);
+                  }} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded">Delete</button>
+                </div>
+              </div>
+            </div>
+          )}
+          {showReportModal && selectedProject && (
+            <ReportModal
+              project={selectedProject}
+              onClose={() => setShowReportModal(false)}
+              onSave={(report) => {
+                // persist generated report to localStorage so Reports page can show it
+                try {
+                  const id = `gen_${Date.now()}`;
+                  const completed = {
+                    id,
+                    title: report.title || selectedProject.title,
+                    description: report.description || selectedProject.description,
+                    category: selectedProject.category || 'Infrastructure',
+                    categoryColor: selectedProject.categoryColor || 'bg-blue-100 text-blue-700',
+                    categoryIcon: selectedProject.categoryIcon || '🏗️',
+                    completedDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+                    startDate: selectedProject.startDate || '',
+                    actualBudget: (report.financial && report.financial[0]) || selectedProject.budget || '',
+                    plannedBudget: selectedProject.budget || '',
+                    actualDuration: selectedProject.endDate || '',
+                    plannedDuration: selectedProject.endDate || '',
+                    department: selectedProject.department || '',
+                    teamMembers: report.team && report.team.length ? report.team : (selectedProject.recentUpdates || []).map((u: any) => u.author + ' (member)'),
+                    location: selectedProject.location || '',
+                    beneficiaries: 0,
+                    satisfactionScore: report.satisfaction || selectedProject.progress || 0,
+                    objectives: report.objectives || [],
+                    challenges: report.challenges || [],
+                    outcomes: report.outcomes || [],
+                    recommendations: report.recommendations || [],
+                    photos: report.photos || [],
+                    financialBreakdown: {
+                      materials: report.financial && report.financial[0] ? report.financial[0] : '',
+                      labor: report.financial && report.financial[1] ? report.financial[1] : '',
+                      equipment: report.financial && report.financial[2] ? report.financial[2] : '',
+                      miscellaneous: report.financial && report.financial[3] ? report.financial[3] : ''
+                    },
+                    kpis: {
+                      onTime: true,
+                      onBudget: true,
+                      qualityScore: 0,
+                      stakeholderSatisfaction: report.satisfaction || 0
+                    }
+                  };
+
+                  const key = 'generatedReports';
+                  const existing = localStorage.getItem(key);
+                  const arr = existing ? JSON.parse(existing) : [];
+                  arr.unshift(completed);
+                  localStorage.setItem(key, JSON.stringify(arr));
+                } catch (e) {
+                  console.error('Failed to save generated report', e);
+                }
+
+                setShowReportModal(false);
+                router.push(`/reports?projectId=${selectedProject.id}`);
+              }}
+            />
+          )}
         </div>
       </div>
     );
@@ -786,7 +854,7 @@ export default function ActiveProjects() {
         <div className="flex-1 p-8">
             <div className="max-w-7xl mx-auto">
               {/* Sticky search bar: stays visible while only results scroll */}
-              <div className="sticky top-20 z-30 bg-slate-50 py-4 mb-6">
+                  <div className="sticky z-30 bg-slate-50 py-4 mb-6" style={{ top: 'var(--topbar-height)' }}>
                 <div className="max-w-3xl mx-auto">
                   <div className="relative">
                     <svg className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -966,9 +1034,28 @@ export default function ActiveProjects() {
                         fiscalYear: ''
                       }}
                       onCardClick={() => handleProjectClick(project)}
+                      onRequestDelete={() => setPendingDeleteProject(project)}
                     />
                   ))}
                 </div>
+                {/* Delete confirmation modal for projects (grid view) */}
+                {pendingDeleteProject && (
+                  <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+                    <div className="bg-white rounded-xl w-full max-w-sm p-6">
+                      <h3 className="text-lg font-semibold mb-4 text-slate-900">Confirm Delete</h3>
+                      <p className="text-sm text-slate-700">Do you want to delete this project? This action cannot be undone.</p>
+                      <div className="mt-4 flex justify-end gap-3">
+                        <button onClick={() => setPendingDeleteProject(null)} className="px-4 py-2 rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-50">Cancel</button>
+                        <button onClick={() => {
+                          if (!pendingDeleteProject) return;
+                          setProjectsState(prev => prev.filter(p => p.id !== pendingDeleteProject.id));
+                          if (selectedProject?.id === pendingDeleteProject.id) setSelectedProject(null);
+                          setPendingDeleteProject(null);
+                        }} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded">Delete</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
         </div>

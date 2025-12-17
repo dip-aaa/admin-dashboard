@@ -10,9 +10,11 @@ interface Props {
   categoryColor?: string
   categoryIcon?: string
   onClick?: () => void
+  onDelete?: () => void
+  onRequestDelete?: () => void
 }
 
-export default function ReportCard({ id, title, department, completedDate, satisfactionScore, category, categoryColor, categoryIcon, onClick }: Props) {
+export default function ReportCard({ id, title, department, completedDate, satisfactionScore, category, categoryColor, categoryIcon, onClick, onDelete, onRequestDelete }: Props) {
   return (
     <article
       onClick={onClick}
@@ -35,6 +37,23 @@ export default function ReportCard({ id, title, department, completedDate, satis
           </div>
 
         </div>
+
+        {/* Delete (dustbin) button */}
+        {(onDelete || onRequestDelete) && (
+          <div className="absolute bottom-3 right-3 z-40">
+            <button
+              onClick={(e) => { e.stopPropagation(); if (onRequestDelete) onRequestDelete(); else if (onDelete) onDelete(); }}
+              title="Delete report"
+              aria-label="Delete report"
+              className="w-8 h-8 text-red-700 flex items-center justify-center transition-opacity"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden>
+                <path d="M3 6h18v2H3V6zm2 3h14l-1 11H6L5 9zm3-6h6l1 1H7l1-1z" />
+              </svg>
+            </button>
+          </div>
+        )}
+
       </div>
     </article>
   )
